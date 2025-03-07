@@ -144,5 +144,26 @@
         height: auto;
         border-radius: 4px;
     }
+    
+    /* Дополнительные стили для отображения вложений */
+    .attachment-file {
+        display: flex;
+        align-items: center;
+        padding: 8px;
+        background-color: #f5f5f5;
+        border-radius: 4px;
+        margin: 5px 0;
+    }
+    
+    .attachment-file a {
+        margin-left: 10px;
+        color: #007bff;
+        text-decoration: none;
+        word-break: break-all;
+    }
+    
+    .attachment-icon {
+        font-size: 20px;
+    }
 </style>
 

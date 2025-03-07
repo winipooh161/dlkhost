@@ -261,16 +261,36 @@ class ChatController extends Controller
 
         DB::beginTransaction();
         try {
+            // Убедимся, что attachments всегда массив или null
+            $attachmentsJson = !empty($attachments) ? $attachments : null;
+            
+            $sender = Auth::user();
+            $messageContent = $validated['message'] ?? '';
+            
             if ($type === 'personal') {
                 $receiver = User::findOrFail($id);
                 $message = Message::create([
                     'sender_id'    => $currentUserId,
                     'receiver_id'  => $receiver->id,
                     'chat_id'      => null,
-                    'message'      => $validated['message'] ?? '',
+                    'message'      => $messageContent,
                     'message_type' => $messageType,
-                    'attachments'  => $attachments,
+                    'attachments'  => $attachmentsJson,
                 ]);
+                
+                // Отправляем уведомление через Firebase, если есть токен
+                if ($receiver->firebase_token) {
+                    $this->sendFirebaseNotification(
+                        $receiver,
+                        'Новое сообщение от ' . $sender->name,
+                        $messageContent,
+                        [
+                            'chatId' => $currentUserId,
+                            'chatType' => 'personal',
+                            'messageId' => $message->id
+                        ]
+                    );
+                }
             } elseif ($type === 'group') {
                 $chat = Chat::where('type', 'group')->findOrFail($id);
                 if (!$chat->users->contains($currentUserId)) {
@@ -279,35 +299,26 @@ class ChatController extends Controller
                 $message = Message::create([
                     'sender_id'    => $currentUserId,
                     'chat_id'      => $chat->id,
-                    'message'      => $validated['message'] ?? '',
+                    'message'      => $messageContent,
                     'message_type' => $messageType,
-                    'attachments'  => $attachments,
+                    'attachments'  => $attachmentsJson,
                 ]);
-            }
-
-            // Отправка уведомления через Firebase
-            $firebaseToken = $receiver->firebase_token; // Предполагается, что у пользователя есть токен Firebase
-            if ($firebaseToken) {
-                $notification = [
-                    'title' => 'Новое сообщение',
-                    'body' => $message->message,
-                    'icon' => '/path/to/icon.png',
-                ];
-
-                $extraNotificationData = ["message" => $notification, "moredata" => "dd"];
-
-                $fcmNotification = [
-                    'to' => $firebaseToken,
-                    'notification' => $notification,
-                    'data' => $extraNotificationData
-                ];
-
-                $headers = [
-                    'Authorization: key=' . env('209164982906'),
-                    'Content-Type: application/json'
-                ];
-
-                Http::withHeaders($headers)->post('https://fcm.googleapis.com/fcm/send', $fcmNotification);
+                
+                // Отправляем уведомления всем участникам чата, кроме отправителя
+                foreach ($chat->users as $user) {
+                    if ($user->id !== $currentUserId && $user->firebase_token) {
+                        $this->sendFirebaseNotification(
+                            $user,
+                            'Новое сообщение в чате ' . $chat->name,
+                            $sender->name . ': ' . $messageContent,
+                            [
+                                'chatId' => $chat->id,
+                                'chatType' => 'group',
+                                'messageId' => $message->id
+                            ]
+                        );
+                    }
+                }
             }
 
             DB::commit();
@@ -322,6 +333,42 @@ class ChatController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Internal Server Error'], 500);
+        }
+    }
+
+    /**
+     * Отправляет уведомление через Firebase.
+     */
+    protected function sendFirebaseNotification($user, $title, $body, $data = [])
+    {
+        if (!$user->firebase_token) {
+            return;
+        }
+        
+        $serverKey = env('FIREBASE_SERVER_KEY');
+        if (!$serverKey) {
+            Log::warning('FIREBASE_SERVER_KEY not configured');
+            return;
+        }
+        
+        try {
+            $fcmNotification = [
+                'to' => $user->firebase_token,
+                'notification' => [
+                    'title' => $title,
+                    'body' => Str::limit(strip_tags($body), 100),
+                    'sound' => 'default',
+                    'icon' => '/path/to/icon.png',
+                ],
+                'data' => $data
+            ];
+            
+            Http::withHeaders([
+                'Authorization' => 'key=' . $serverKey,
+                'Content-Type' => 'application/json'
+            ])->post('https://fcm.googleapis.com/fcm/send', $fcmNotification);
+        } catch (\Exception $e) {
+            Log::error('Ошибка отправки уведомления Firebase: ' . $e->getMessage());
         }
     }
 

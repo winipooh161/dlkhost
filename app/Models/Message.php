@@ -2,47 +2,61 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property int $sender_id
+ * @property int $chat_id
+ * @property int|null $receiver_id
+ * @property string $message
+ * @property bool $is_read
+ * @property \DateTime|null $read_at
+ * @property bool $is_pinned
+ * @property bool $is_system
+ * @property string $message_type
+ * @property \Illuminate\Support\Carbon|null $created_at
+ * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property-read \App\Models\User $sender
+ * @property-read string $sender_name
+ */
 class Message extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'sender_id',
-        'receiver_id',
         'chat_id',
+        'receiver_id',
         'message',
         'is_read',
         'read_at',
-        'message_type',
-        'attachments',
         'is_pinned',
+        'is_system',
+        'message_type'
     ];
 
     protected $casts = [
-        'attachments' => 'array',
-        'is_pinned'   => 'boolean',
+        'is_read' => 'boolean',
+        'read_at' => 'datetime',
+        'is_pinned' => 'boolean',
+        'is_system' => 'boolean'
     ];
 
+    /**
+     * Get the sender of this message.
+     */
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');
     }
 
-    public function receiver()
-    {
-        return $this->belongsTo(User::class, 'receiver_id');
-    }
-
+    /**
+     * Get the chat this message belongs to.
+     */
     public function chat()
     {
-        return $this->belongsTo(Chat::class, 'chat_id');
-    }
-
-    public static function markAsReadByChat($chatId, $userId)
-    {
-        self::where('chat_id', $chatId)
-            ->where('sender_id', '!=', $userId)
-            ->where('is_read', false)
-            ->update(['is_read' => true, 'read_at' => now()]);
+        return $this->belongsTo(Chat::class);
     }
 }

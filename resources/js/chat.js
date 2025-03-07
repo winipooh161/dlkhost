@@ -12,12 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let loadedMessageIds = new Set();
     let pinnedOnly = false;
 
-    function notifyUser(title, body) {
-        if (Notification.permission === 'granted') {
-            new Notification(title, { body });
-        }
-    }
-
     function initializeEmojiPicker(textarea) {
         const container = textarea.parentElement;
         const emojiButton = document.createElement('button');
@@ -128,15 +122,18 @@ document.addEventListener('DOMContentLoaded', () => {
                             contentHtml += `<div>${escapeHtml(message.message)}</div>`;
                         }
                     }
-                    if (message.attachments && message.attachments.length > 0) {
+                    
+                    // Проверяем, существуют ли вложения и являются ли они массивом
+                    if (message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0) {
                         message.attachments.forEach(attachment => {
-                            if (attachment.mime && attachment.mime.startsWith('image/')) {
+                            if (attachment && attachment.mime && attachment.mime.startsWith('image/')) {
                                 contentHtml += `<div><img src="${attachment.url}" alt="Image" style="max-width:100%; border-radius:4px;"></div>`;
-                            } else {
-                                contentHtml += `<div><a href="${attachment.url}" target="_blank">${escapeHtml(attachment.original_file_name)}</a></div>`;
+                            } else if (attachment && attachment.url) {
+                                contentHtml += `<div><a href="${attachment.url}" target="_blank">${escapeHtml(attachment.original_file_name || 'Файл')}</a></div>`;
                             }
                         });
                     }
+                    
                     if(contentHtml.trim() === ''){
                         contentHtml = `<div style="color:#888;">[Пустое сообщение]</div>`;
                     }
@@ -161,9 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${readStatus}
                         </li>
                     `;
-                    if (message.sender_id !== currentUserId) {
-                        notifyUser('Новое сообщение', message.message);
-                    }
                 }
                 loadedMessageIds.add(message.id);
             }
@@ -285,7 +279,6 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(error => {
                 console.error('Ошибка загрузки сообщений:', error);
-                notifyUser('Ошибка', 'Не удалось загрузить сообщения. Проверьте соединение с интернетом.');
             });
     }
 
@@ -356,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.unread_counts) {
                 data.unread_counts.forEach(chat => {
                     if (chat.unread_count > 0) {
-                        notifyUser('Новое сообщение', `У вас ${chat.unread_count} новых сообщений в чате ${chat.name}`);
+                        console.log(`У вас ${chat.unread_count} новых сообщений в чате ${chat.name}`);
                     }
                 });
             }
@@ -475,22 +468,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeEmojiPicker(chatMessageInput);
 
-    // Пример вызова уведомления
-    function testNotification() {
-        if (Notification.permission === 'granted') {
-            notifyUser('Тестовое уведомление', 'Это тестовое уведомление для проверки работоспособности.');
-        } else if (Notification.permission !== 'denied') {
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    notifyUser('Тестовое уведомление', 'Это тестовое уведомление для проверки работоспособности.');
-                }
-            });
-        }
-    }
-
-    // Вызов тестового уведомления при загрузке страницы
-    testNotification();
-
     document.addEventListener('DOMContentLoaded', () => {
         const firstChat = chatList ? chatList.querySelector('li') : null;
         if (firstChat) firstChat.click();
@@ -524,7 +501,6 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .catch(e => {
                 console.error('Ошибка при получении новых сообщений:', e);
-                notifyUser('Ошибка', 'Не удалось получить новые сообщения. Проверьте соединение с интернетом.');
             });
         }
     }, 1000); // Проверка новых сообщений каждую секунду
@@ -553,26 +529,4 @@ document.addEventListener('DOMContentLoaded', () => {
             filterMessages();
         });
     }
-
-    // Инициализация Firebase
-    const firebaseConfig = {
-        apiKey: "AIzaSyB6N1n8dW95YGMMuTsZMRnJY1En7lK2s2M",
-        authDomain: "dlk-diz.firebaseapp.com",
-        projectId: "dlk-diz",
-        storageBucket: "dlk-diz.firebasestorage.app",
-        messagingSenderId: "209164982906",
-        appId: "1:209164982906:web:0836fbb02e7effd80679c3"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const messaging = getMessaging(app);
-
-    // Обработка входящих сообщений
-    onMessage(messaging, (payload) => {
-        console.log('Message received. ', payload);
-        new Notification(payload.notification.title, {
-            body: payload.notification.body,
-            icon: payload.notification.icon
-        });
-    });
 });

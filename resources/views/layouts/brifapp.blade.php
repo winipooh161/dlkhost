@@ -49,7 +49,7 @@
      <meta name="msapplication-config" content="./browserconfig.xml">
 
      
-    @vite([ 'resources/css/style.css', 'resources/css/font.css', 'resources/css/element.css', 'resources/js/bootstrap.js','resources/css/animation.css', 'resources/css/mobile.css', 'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/success.js', 'resources/js/mask.js', 'resources/js/login.js', 'resources/js/chat.js', 'resources/js/ChatManager.js', 'resources/js/webPush.js'])
+    @vite([ 'resources/css/style.css', 'resources/css/font.css', 'resources/css/element.css', 'resources/js/bootstrap.js','resources/css/animation.css', 'resources/css/mobile.css', 'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/success.js', 'resources/js/mask.js', 'resources/js/login.js', 'resources/js/chat.js'])
 <body>
    
     @if(session('success'))

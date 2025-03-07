@@ -10,6 +10,22 @@ class MessageResource extends JsonResource
     {
         $chatType = $this->chat ? $this->chat->type : 'personal';
         $chatId = $this->chat_id ?? $this->receiver_id;
+        
+        // Проверяем, что attachments является массивом
+        $attachments = [];
+        if (!empty($this->attachments)) {
+            if (is_string($this->attachments)) {
+                // Если строка, пробуем распарсить JSON
+                try {
+                    $decoded = json_decode($this->attachments, true);
+                    $attachments = is_array($decoded) ? $decoded : [];
+                } catch (\Exception $e) {
+                    $attachments = [];
+                }
+            } elseif (is_array($this->attachments)) {
+                $attachments = $this->attachments;
+            }
+        }
 
         return [
             'id'                 => $this->id,
@@ -23,7 +39,7 @@ class MessageResource extends JsonResource
             'sender_avatar'      => $this->sender->avatar_url ?? '/user/avatar/default.png',
             'is_pinned'          => $this->is_pinned,
             'message_type'       => $this->message_type, // ('text', 'file' или 'notification')
-            'attachments'        => $this->attachments ?? [],
+            'attachments'        => $attachments,
             'created_at'         => $this->created_at->toDateTimeString(),
             'message_link'       => route('chats.messages', ['chatType' => $chatType, 'chatId' => $chatId]) . "#message-{$this->id}",
         ];

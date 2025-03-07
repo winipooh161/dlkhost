@@ -5,12 +5,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $title_site }}</title>    <link rel="stylesheet" href="{{ asset('/css/animate.css') }}">
+    <title>{{ $title_site ?? config('app.name', 'Laravel') }}</title>
+    <link rel="stylesheet" href="{{ asset('/css/animate.css') }}">
     <link rel="stylesheet" href="{{ asset('/css/introjs.min.css') }}">
-    @vite([ 'resources/css/font.css', 'resources/css/animation.css',  'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/success.js', 'resources/js/mask.js', 'resources/js/chat.js', 'resources/js/ChatManager.js','resources/css/style.css',  'resources/css/element.css','resources/css/mobile.css', 'resources/js/webPush.js'])
-
-
-
+    @vite([ 'resources/css/font.css', 'resources/css/animation.css',  'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/success.js', 'resources/js/mask.js', 'resources/js/chat.js','resources/css/style.css',  'resources/css/element.css','resources/css/mobile.css', 'resources/js/firebase-init.js'])
 
     <script src="{{ asset('/js/wow.js') }}"></script>
     <!-- Подключаем стили Intro.js -->
@@ -84,7 +82,23 @@
     
         setInterval(refreshCsrfToken, 60000); // Обновление каждые 10 минут
     </script>
-      @include('layouts/style')
+    @include('layouts/style')
+
+    <!-- Передача данных для JS -->
+    <script>
+        window.Laravel = {!! json_encode([
+            'csrfToken' => csrf_token(),
+            'user' => Auth::check() ? [
+                'id' => Auth::id(),
+                'name' => Auth::user()->name,
+                'email' => Auth::user()->email,
+                'status' => Auth::user()->status,
+            ] : null,
+        ]) !!};
+    </script>
+    <!-- Дополнительные скрипты и стили в зависимости от страницы -->
+    @yield('scripts')
+    @yield('styles')
 </head>
 
 <body>
@@ -110,10 +124,9 @@
         @include('layouts/mobponel')
     </main>
 
+    <!-- Дополнительные скрипты в конце страницы -->
+    @stack('scripts')
 </body>
-
-
-
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
