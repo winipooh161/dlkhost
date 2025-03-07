@@ -342,16 +342,21 @@ class ChatController extends Controller
     protected function sendFirebaseNotification($user, $title, $body, $data = [])
     {
         if (!$user->firebase_token) {
+            Log::info('Не удалось отправить уведомление: отсутствует токен Firebase', [
+                'user_id' => $user->id,
+                'title' => $title
+            ]);
             return;
         }
         
         $serverKey = env('FIREBASE_SERVER_KEY');
         if (!$serverKey) {
-            Log::warning('FIREBASE_SERVER_KEY not configured');
+            Log::warning('FIREBASE_SERVER_KEY не настроен');
             return;
         }
         
         try {
+            // Правильно форматируем сообщение для FCM
             $fcmNotification = [
                 'to' => $user->firebase_token,
                 'notification' => [
@@ -359,16 +364,57 @@ class ChatController extends Controller
                     'body' => Str::limit(strip_tags($body), 100),
                     'sound' => 'default',
                     'icon' => '/path/to/icon.png',
+                    'click_action' => url('/chats')
                 ],
-                'data' => $data
+                'data' => $data,
+                'priority' => 'high', // Важно для доставки уведомлений
+                'android' => [
+                    'priority' => 'high',
+                    'notification' => [
+                        'click_action' => 'FLUTTER_NOTIFICATION_CLICK'
+                    ]
+                ],
+                'webpush' => [
+                    'headers' => [
+                        'Urgency' => 'high'
+                    ],
+                    'notification' => [
+                        'requireInteraction' => true
+                    ]
+                ],
+                'apns' => [
+                    'headers' => [
+                        'apns-priority' => '10'
+                    ],
+                    'payload' => [
+                        'aps' => [
+                            'sound' => 'default'
+                        ]
+                    ]
+                ]
             ];
             
-            Http::withHeaders([
+            Log::info('Отправка FCM уведомления:', [
+                'user_id' => $user->id,
+                'token' => substr($user->firebase_token, 0, 10) . '...'
+            ]);
+            
+            $response = Http::withHeaders([
                 'Authorization' => 'key=' . $serverKey,
                 'Content-Type' => 'application/json'
             ])->post('https://fcm.googleapis.com/fcm/send', $fcmNotification);
+            
+            Log::info('Ответ от FCM:', ['response' => $response->body()]);
+            
+            if (!$response->successful()) {
+                Log::error('Ошибка отправки FCM уведомления:', ['response' => $response->body()]);
+            }
+            
+            return $response->json();
         } catch (\Exception $e) {
-            Log::error('Ошибка отправки уведомления Firebase: ' . $e->getMessage());
+            Log::error('Ошибка отправки уведомления Firebase: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
         }
     }
 

@@ -1,7 +1,35 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging, onMessage } from "firebase/messaging";
+import { showBrowserNotification, showModalNotification } from './firebase-init';
 
+// Добавляем проверку разрешений на уведомления при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
+    // Проверяем и запрашиваем разрешения на уведомления, если еще не запрошены
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+        // Показываем пользовательский интерфейс для запроса разрешений
+        const notificationBanner = document.createElement('div');
+        notificationBanner.className = 'notification-permission-banner';
+        notificationBanner.innerHTML = `
+            <div class="notification-banner-content">
+                <p>Разрешите уведомления, чтобы быть в курсе новых сообщений</p>
+                <button id="allow-notifications" class="btn btn-primary">Разрешить</button>
+                <button id="close-notification-banner" class="btn btn-secondary">Позже</button>
+            </div>
+        `;
+        document.body.appendChild(notificationBanner);
+
+        document.getElementById('allow-notifications').addEventListener('click', () => {
+            Notification.requestPermission().then(permission => {
+                console.log('Пользователь ' + (permission === 'granted' ? 'разрешил' : 'не разрешил') + ' уведомления');
+                notificationBanner.remove();
+            });
+        });
+
+        document.getElementById('close-notification-banner').addEventListener('click', () => {
+            notificationBanner.remove();
+        });
+    }
+
     const currentUserId = window.Laravel.user.id;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
     const pinImgUrl = window.pinImgUrl;
@@ -11,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentChatType = null;
     let loadedMessageIds = new Set();
     let pinnedOnly = false;
+    let notifiedChats = new Set();
 
     function initializeEmojiPicker(textarea) {
         const container = textarea.parentElement;
@@ -331,6 +360,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // }
     }
 
+    function showChatNotification(message, chatId = null, chatType = null) {
+        // Используем импортированную функцию для показа уведомления
+        showModalNotification('Новое сообщение', message, chatId, chatType);
+    }
+
     function checkForNewMessages() {
         fetch('/chats/unread-counts', {
             method: 'GET',
@@ -346,10 +380,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return response.json();
         })
         .then(data => {
-            if (data.unread_counts) {
+            if (data.unread_counts && data.unread_counts.length > 0) {
                 data.unread_counts.forEach(chat => {
-                    if (chat.unread_count > 0) {
-                        console.log(`У вас ${chat.unread_count} новых сообщений в чате ${chat.name}`);
+                    if (chat.unread_count > 0 && !notifiedChats.has(chat.id)) {
+                        const message = `У вас ${chat.unread_count} новых сообщений в чате ${chat.name}`;
+                        // Используем импортированные функции вместо своих
+                        showBrowserNotification('Новое сообщение', message, { chatId: chat.id, chatType: chat.type });
+                        notifiedChats.add(chat.id);
                     }
                 });
             }

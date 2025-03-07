@@ -7,8 +7,8 @@ import axios from 'axios';
 window.axios = axios;
 window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
-// Импортируем скрипт инициализации Firebase
-import './firebase-init';
+// Импортируем скрипт инициализации Firebase - только один раз
+import './firebase-init.js';
 
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
