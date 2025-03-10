@@ -1,6 +1,6 @@
 {
-  "_firebase-init-DU03lT4B.js": {
-    "file": "assets/firebase-init-DU03lT4B.js",
+  "_firebase-init-WlDQV2z_.js": {
+    "file": "assets/firebase-init-WlDQV2z_.js",
     "name": "firebase-init",
     "imports": [
       "_index.esm2017-NZQW5Whv.js"
@@ -9,6 +9,13 @@
   "_index.esm2017-NZQW5Whv.js": {
     "file": "assets/index.esm2017-NZQW5Whv.js",
     "name": "index.esm2017"
+  },
+  "_notification-Unum4wLs.js": {
+    "file": "assets/notification-Unum4wLs.js",
+    "name": "notification",
+    "imports": [
+      "_firebase-init-WlDQV2z_.js"
+    ]
   },
   "public/css/animate.css": {
     "file": "assets/animate-CRehqwWP.css",
@@ -43,12 +50,12 @@
     "isEntry": true
   },
   "resources/css/mobile.css": {
-    "file": "assets/mobile-BcnYojsx.css",
+    "file": "assets/mobile-Cs7wsE1_.css",
     "src": "resources/css/mobile.css",
     "isEntry": true
   },
   "resources/css/style.css": {
-    "file": "assets/style-CkUn2YgR.css",
+    "file": "assets/style-dKPyN8zl.css",
     "src": "resources/css/style.css",
     "isEntry": true
   },
@@ -113,24 +120,48 @@
     "src": "resources/fonts/andantinoscript.ttf"
   },
   "resources/js/bootstrap.js": {
-    "file": "assets/bootstrap-CwmgVNpY.js",
+    "file": "assets/bootstrap-b7HZ3VdA.js",
     "name": "bootstrap",
     "src": "resources/js/bootstrap.js",
     "isEntry": true,
     "imports": [
-      "_firebase-init-DU03lT4B.js",
+      "_firebase-init-WlDQV2z_.js",
       "_index.esm2017-NZQW5Whv.js"
     ]
   },
+  "resources/js/chat-main.js": {
+    "file": "assets/chat-main-Cvv3Eeft.js",
+    "name": "chat-main",
+    "src": "resources/js/chat-main.js",
+    "isEntry": true,
+    "imports": [
+      "_notification-Unum4wLs.js",
+      "_firebase-init-WlDQV2z_.js",
+      "_index.esm2017-NZQW5Whv.js"
+    ]
+  },
+  "resources/js/chat-utils.js": {
+    "file": "assets/chat-utils-l0sNRNKZ.js",
+    "name": "chat-utils",
+    "src": "resources/js/chat-utils.js",
+    "isEntry": true
+  },
   "resources/js/chat.js": {
-    "file": "assets/chat-C2Nd3KyK.js",
+    "file": "assets/chat-idAbRvGV.js",
     "name": "chat",
     "src": "resources/js/chat.js",
     "isEntry": true,
     "imports": [
       "_index.esm2017-NZQW5Whv.js",
-      "_firebase-init-DU03lT4B.js"
+      "_firebase-init-WlDQV2z_.js",
+      "_notification-Unum4wLs.js"
     ]
+  },
+  "resources/js/emoji-picker.js": {
+    "file": "assets/emoji-picker-l0sNRNKZ.js",
+    "name": "emoji-picker",
+    "src": "resources/js/emoji-picker.js",
+    "isEntry": true
   },
   "resources/js/firebase-init.js": {
     "file": "assets/firebase-init-b7KMw6yx.js",
@@ -153,11 +184,27 @@
     "src": "resources/js/mask.js",
     "isEntry": true
   },
+  "resources/js/message-actions.js": {
+    "file": "assets/message-actions-l0sNRNKZ.js",
+    "name": "message-actions",
+    "src": "resources/js/message-actions.js",
+    "isEntry": true
+  },
   "resources/js/modal.js": {
     "file": "assets/modal-DTmLFkU_.js",
     "name": "modal",
     "src": "resources/js/modal.js",
     "isEntry": true
+  },
+  "resources/js/notification.js": {
+    "file": "assets/notification-CTIFT5uF.js",
+    "name": "notification",
+    "src": "resources/js/notification.js",
+    "isEntry": true,
+    "imports": [
+      "_firebase-init-WlDQV2z_.js",
+      "_index.esm2017-NZQW5Whv.js"
+    ]
   },
   "resources/js/success.js": {
     "file": "assets/success-kIPrc5gy.js",

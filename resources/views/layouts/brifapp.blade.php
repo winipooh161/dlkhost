@@ -49,7 +49,11 @@
      <meta name="msapplication-config" content="./browserconfig.xml">
 
      
-    @vite([ 'resources/css/style.css', 'resources/css/font.css',, 'resources/js/firebase-init.js', 'resources/css/element.css', 'resources/js/bootstrap.js','resources/css/animation.css', 'resources/css/mobile.css', 'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/success.js', 'resources/js/mask.js', 'resources/js/login.js', 'resources/js/chat.js'])
+    @vite(['resources/css/style.css', 'resources/css/font.css', 'resources/js/firebase-init.js', 'resources/css/element.css', 'resources/js/bootstrap.js', 'resources/css/animation.css', 'resources/css/mobile.css', 'resources/js/modal.js', 'resources/js/success.js', 'resources/js/mask.js', 'resources/js/login.js', 'resources/js/chat.js', 'resources/js/notification.js', 
+
+    'resources/js/message-actions.js',
+    'resources/js/emoji-picker.js',
+    'resources/js/chat-utils.js','resources/js/chat-main.js'])
 <body>
    
     @if(session('success'))

@@ -228,7 +228,9 @@
                 const textareas = document.querySelectorAll('.faq__body textarea');
                 textareas.forEach(function(textarea) {
                     const value = parseFloat(textarea.value.replace(/\D/g, '')) || 0;
-                    total += value;
+                    if (value !== 0) {
+                        total += value;
+                    }
                 });
                 document.getElementById('budget-total').textContent = formatCurrency(total);
                 document.getElementById('budget-input').value = total;

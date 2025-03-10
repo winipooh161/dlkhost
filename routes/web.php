@@ -137,12 +137,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/chats/unread-counts', [ChatController::class, 'getUnreadCounts'])->name('chats.unreadCounts');
 });
 
-// Firebase маршруты
-Route::middleware(['auth'])->group(function () {
-    Route::post('/firebase/update-token', 'App\Http\Controllers\FirebaseController@updateToken');
-    Route::post('/firebase/send-notification', 'App\Http\Controllers\FirebaseController@sendNotification');
-});
-
 // Общие маршруты для чатов (личные и групповые)
 Route::middleware(['auth'])->group(function () {
     Route::get('/chats', [ChatController::class, 'index'])->name('chats.index');

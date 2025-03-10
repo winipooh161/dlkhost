@@ -256,7 +256,9 @@
         const budgetInputs = document.querySelectorAll('.zone-item input[name^="budget"]');
         budgetInputs.forEach(function(input) {
             const value = parseFloat(input.value.replace(/\s+/g, '').replace('₽', '')) || 0;
-            total += value;
+            if (value !== 0) {
+                total += value;
+            }
         });
         const formattedTotal = formatCurrency(total);
         document.getElementById('budget-total').textContent = formattedTotal;

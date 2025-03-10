@@ -173,7 +173,9 @@ public function saveAnswers(Request $request, $id, $page)
                 foreach ($data['budget'] as $index => $budgetValue) {
                     // Убираем всё, кроме цифр
                     $cleanBudget = preg_replace('/\D/', '', $budgetValue);
-                    $zoneBudgets[$index] = floatval($cleanBudget);
+                    if ($cleanBudget !== '') {
+                        $zoneBudgets[$index] = floatval($cleanBudget);
+                    }
                 }
                 $commercial->zone_budgets = json_encode($zoneBudgets);
             }

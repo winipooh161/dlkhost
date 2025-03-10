@@ -98,8 +98,9 @@
 @media only screen and (max-width: 980px) {
     .chat-container {
         -ms-flex-wrap: wrap;
-            flex-wrap: wrap;
+        flex-wrap: wrap;
         height: 100%;
+        padding: 0;
         max-height: 100%;
     }
     .support-chat-block-skiter {
@@ -115,7 +116,7 @@
         padding: 0;
     }
     form.back__fon__common {
-        padding: 0 0 200px 0;
+        padding: 0 0 100px 0;
         background: var(--fff);
     }
     .button__create__brifs {
@@ -151,7 +152,9 @@
   
     .chat-header {
         border-radius: 0;
-        padding: 15px 15px 15px 35px;
+        padding: var(--p10);
+        position: relative;
+        margin: 0 !important;!i;!;
         }
     .chat-box {
                         width: 100%;
@@ -357,12 +360,13 @@
         padding-bottom: 70px;
     }
     .chat-messages {
-        max-height: 100%;
-        min-height: 700px;
+        min-height: 63vh;
+        max-height: 587px;
+        content: "";
         overflow-y: auto;
         margin-bottom: 10px;
         border: 1px solid #eee;
-        padding: 10px;
+        padding: 60px 10px 10px 10px;
     }
     .mb.mobile__ponel ul li button {
       
@@ -403,9 +407,9 @@
         letter-spacing: 0%;
     }
     .form-group textarea {
-        
         font-weight: 400;
         font-size: 14px;
+        overflow: hidden;
         line-height: 19.6px;
         letter-spacing: 0%;
     }
@@ -848,7 +852,7 @@
     .user-list {
         display: none;
         z-index: 2;
-        position: absolute;
+        /* position: absolute; */
         width: 100%;
         height: 100%;
         background: white;
@@ -862,7 +866,8 @@
         display: block;
     }
     .user-list.active {
-        display: block;
+        display: inline-block;
+        flex-direction: column;
     }
     .back-button {
         display: block;
@@ -1060,10 +1065,76 @@
     }  
 
 @media (max-width: 768px) {
- 
+    .modal__deal .modal-content form {
+        padding: 0;
+    }
+    .form-buttons {
+        margin: 0;
+        gap: var(--g10);
+        padding: var(
+        --p10);
+    }
+    .form-buttons button {
+        margin: 0;
+    }
+    .feed-post {
+        padding: 0;
+    }
+    .burger-menu {
+        position: absolute;
+        top: 24px;
+        right: 10px;
+        cursor: pointer;
+        z-index: 1000;
+    }
+    .burger-icon {
+        width: 30px;
+        height: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .burger-icon span {
+        display: block;
+        height: 4px;
+        background: #333;
+        border-radius: 2px;
+    }
+    .user-list {
+        transition: transform 0.3s ease;
+        transform: translateX(-100%);
+    }
+    .user-list.active {
+        transform: translateX(0);
+        padding: var(--p20);
+    }
+    .chat-box.inactive {
+        display: none;
+    }
+     
+    #toggle-pinned {
+        margin: 0 !important;
+        padding: 0 !important;
+        top: 60px;
+    }
+    fieldset.module__deal-deal {
+        padding: var(--p20) !important;
+    }
+    .chat-input button.emoji-button {
+        left: 65px;
+        height: 50px !important;
+    }
+    .chat-input {
+        padding: 0;
+    }
+    .user-list ul {
+    
+        padding: 20px 0px 60px 0px; }
 }
 @media (min-width: 769px) {
+   
     .back-button {
         display: none;
     }
 }
+

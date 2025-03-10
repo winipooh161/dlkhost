@@ -108,12 +108,18 @@ class ChatController extends Controller
                     ? $chat->messages->where('created_at', '>', $lastReadAt)->count()
                     : $chat->messages->count();
                 $lastMessage = $chat->messages->first();
+                
+                // Проверка и установка аватара по умолчанию для групповых чатов
+                $avatarUrl = $chat->avatar_url;
+                if (empty($avatarUrl) || !file_exists(public_path($avatarUrl))) {
+                    $avatarUrl = 'storage/avatars/group_default.png';
+                }
 
                 $chats->push([
                     'id'                => $chat->id,
                     'type'              => 'group',
                     'name'              => $chat->name,
-                    'avatar_url'        => $chat->avatar_url,
+                    'avatar_url'        => $avatarUrl,
                     'unread_count'      => $unreadCount,
                     'last_message_time' => $lastMessage ? $lastMessage->created_at : null,
                 ]);
@@ -233,6 +239,11 @@ class ChatController extends Controller
             return response()->json(['error' => 'Ошибка валидации.'], 422);
         }
 
+        // Проверка на пустое сообщение и отсутствие файлов
+        if (empty($validated['message']) && !$request->hasFile('files')) {
+            return response()->json(['error' => 'Сообщение не может быть пустым.'], 400);
+        }
+
         $currentUserId = Auth::id();
         $attachments = [];
         $messageType = 'text';
@@ -241,8 +252,9 @@ class ChatController extends Controller
             if ($request->hasFile('files')) {
                 $files = $request->file('files');
                 foreach ($files as $file) {
+                    $chatFolder = $type === 'personal' ? "personal_chat_{$id}" : "group_chat_{$id}";
                     $fileName = time().'_'.$file->getClientOriginalName();
-                    $filePathStored = $file->storeAs('uploads', $fileName, 'public');
+                    $filePathStored = $file->storeAs("uploads/{$chatFolder}", $fileName, 'public');
                     $url = asset('storage/'.$filePathStored);
                     $attachments[] = [
                         'url' => $url,
@@ -262,7 +274,7 @@ class ChatController extends Controller
         DB::beginTransaction();
         try {
             // Убедимся, что attachments всегда массив или null
-            $attachmentsJson = !empty($attachments) ? $attachments : null;
+            $attachmentsJson = !empty($attachments) ? json_encode($attachments) : null;
             
             $sender = Auth::user();
             $messageContent = $validated['message'] ?? '';
@@ -510,7 +522,7 @@ class ChatController extends Controller
                 return response()->json(['error' => 'Неверный тип чата.'], 400);
             }
         } catch (\Exception $e) {
-            Log::error('Ошибка при пометке сообщений как прочитанных: ' . $e->getMessage(), [
+            Log::error('Ошибка при пометке сообщений как прочитанных: ' . $е->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Внутренняя ошибка сервера.'], 500);
@@ -592,7 +604,12 @@ class ChatController extends Controller
             ], 200);
     
         } catch (\Exception $e) {
-            Log::error('Ошибка при закреплении сообщения: ' . $e->getMessage());
+            Log::error('Ошибка при закреплении сообщения: ' . $e->getMessage(), [
+                'chatType' => $chatType,
+                'chatId' => $chatId,
+                'messageId' => $messageId,
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['error' => 'Ошибка закрепления сообщения.'], 500);
         }
     }
@@ -775,12 +792,18 @@ class ChatController extends Controller
                     ? $chat->messages->where('created_at', '>', $lastReadAt)->count()
                     : $chat->messages->count();
                 $lastMessage = $chat->messages->first();
+                
+                // Проверка и установка аватара по умолчанию для групповых чатов
+                $avatarUrl = $chat->avatar_url;
+                if (empty($avatarUrl) || !file_exists(public_path($avatarUrl))) {
+                    $avatarUrl = 'storage/avatars/group_default.png';
+                }
 
                 $chats->push([
                     'id'                => $chat->id,
                     'type'              => 'group',
                     'name'              => $chat->name,
-                    'avatar_url'        => $chat->avatar_url,
+                    'avatar_url'        => $avatarUrl,
                     'unread_count'      => $unreadCount,
                     'last_message_time' => $lastMessage ? $lastMessage->created_at : null,
                 ]);

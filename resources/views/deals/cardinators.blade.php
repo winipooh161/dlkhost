@@ -264,19 +264,19 @@
             <button data-target="Аватар сделки">Аватар сделки</button>
             <ul>
                 <li>
-                    <a href="{{ $deal->link ? url($deal->link) : '#' }}">
+                    <a href="{{ isset($deal) && $deal->link ? url($deal->link) : '#' }}">
                         <img src="/storage/icon/link.svg" alt="Чат">
                     </a>
                 </li>
                 @if (in_array(Auth::user()->status, ['coordinator', 'admin']))
                     <li>
-                        <a href="{{ route('deal.change_logs.deal', ['deal' => $deal->id]) }}" class="btn btn-info btn-sm">
+                        <a href="{{ isset($deal) ? route('deal.change_logs.deal', ['deal' => $deal->id]) : '#' }}" class="btn btn-info btn-sm">
                             <img src="/storage/icon/log.svg" alt="Чат">
                         </a>
                     </li>
                 @endif
                 <li>
-                   <a href="{{ $groupChat ? url('/chats?active_chat=' . $groupChat->id) : '#' }}">
+                   <a href="{{ isset($groupChat) ? url('/chats?active_chat=' . $groupChat->id) : '#' }}">
                         <img src="/storage/icon/chat.svg" alt="Чат">
                     </a>
                 </li>
@@ -284,34 +284,37 @@
         </div>
 
         <!-- Модуль: Лента (отдельно, не внутри формы) -->
-        <fieldset class="module__deal" id="module-feed">
+        <fieldset class="module__deal " id="module-feed">
             <legend>Лента</legend>
             <!-- Список записей ленты -->
             <div class="feed-posts" id="feed-posts-container">
-              @foreach ($deal->dealFeeds as $feed)
-              <div class="feed-post">
-                  <div class="feed-post-avatar">
-                      <img src="{{ $feed->user->avatar_url ?? asset('storage/default-avatar.png') }}" 
-                           alt="{{ $feed->user->name }}">
-                  </div>
-                  <div class="feed-post-text">
-                      <div class="feed-author">{{ $feed->user->name }}</div>
-                      <div class="feed-content">{{ $feed->content }}</div>
-                      <div class="feed-date">{{ $feed->created_at->format('d.m.Y H:i') }}</div>
-                  </div>
-              </div>
-          @endforeach
-          
-          @if (in_array(Auth::user()->status, ['coordinator', 'admin']))
-          <form id="feed-form">
-              @csrf
-              <div class="feed-form-post">
-                <textarea name="content" id="feed-content" placeholder="Добавьте запись в ленту" required maxlength="1990"></textarea>
-                <button type="submit">  <img src="{{ asset('/storage/icon/send_mesg.svg') }}" alt="Отправить" ></button>
-        
-              </div>
-                  </form>
-      @endif
+                @if(isset($deal) && $deal && isset($deal->dealFeeds))
+                    @foreach ($deal->dealFeeds as $feed)
+                        <div class="feed-post">
+                            <div class="feed-post-avatar">
+                                <img src="{{ $feed->user->avatar_url ?? asset('storage/default-avatar.png') }}" 
+                                     alt="{{ $feed->user->name }}">
+                            </div>
+                            <div class="feed-post-text">
+                                <div class="feed-author">{{ $feed->user->name }}</div>
+                                <div class="feed-content">{{ $feed->content }}</div>
+                                <div class="feed-date">{{ $feed->created_at->format('d.m.Y H:i') }}</div>
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <p>Нет записей в ленте</p>
+                @endif
+                
+                @if (isset($deal) && in_array(Auth::user()->status, ['coordinator', 'admin']))
+                    <form id="feed-form">
+                        @csrf
+                        <div class="feed-form-post">
+                            <textarea name="content" id="feed-content" placeholder="Добавьте запись в ленту" required maxlength="1990"></textarea>
+                            <button type="submit"><img src="{{ asset('/storage/icon/send_mesg.svg') }}" alt="Отправить"></button>
+                        </div>
+                    </form>
+                @endif
             </div>
         </fieldset>
 
@@ -326,6 +329,7 @@
             return;
         }
 
+        @if(isset($deal) && $deal)
         $.ajax({
             url: "{{ route('deal.feed.store', $deal->id) }}",
             type: "POST",
@@ -353,6 +357,9 @@
                 alert("Ошибка при добавлении записи: " + xhr.responseText);
             }
         });
+        @else
+        alert("Не удалось определить сделку. Пожалуйста, обновите страницу.");
+        @endif
     });
 });
 
@@ -367,11 +374,11 @@
 
             @if (Auth::user()->status == 'coordinator' || Auth::user()->status == 'admin')
                 <!-- Модуль: Заказ -->
-                <fieldset class="module__deal" id="module-zakaz">
+                <fieldset class="module__deal module__deal-deal" id="module-zakaz">
                     <legend>Заказ</legend>
                     <div class="form-group-deal">
                         <label>№ проекта:
-                            <input type="text" name="project_number" id="projectNumberField" value="{{ $deal->project_number }}">
+                            <input type="text" name="project_number" id="projectNumberField" value="{{ isset($deal) ? $deal->project_number : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
@@ -396,28 +403,28 @@
                     </div>
                     <div class="form-group-deal">
                         <label>Количество комнат по прайсу:
-                            <input type="number" name="rooms_count_pricing" id="roomsCountField" value="{{ $deal->rooms_count_pricing }}">
+                            <input type="number" name="rooms_count_pricing" id="roomsCountField" value="{{ isset($deal) ? $deal->rooms_count_pricing : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Комментарий к Заказу:
-                            <textarea name="execution_order_comment" id="executionOrderCommentField" maxlength="1000">{{ $deal->execution_order_comment }}</textarea>
+                            <textarea name="execution_order_comment" id="executionOrderCommentField" maxlength="1000">{{ isset($deal) ? $deal->execution_order_comment : '' }}</textarea>
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Пакет:
-                            <input type="text" name="package" id="packageField" value="{{ $deal->package }}">
+                            <input type="text" name="package" id="packageField" value="{{ isset($deal) ? $deal->package : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>ФИО клиента:
-                            <input type="text" name="name" id="nameField" value="{{ $deal->name }}">
+                            <input type="text" name="name" id="nameField" value="{{ isset($deal) ? $deal->name : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Телефон клиента: <span class="required">*</span>
                             <input type="text" name="client_phone" id="phoneField" 
-                                value="{{ $deal->client_phone }}" 
+                                value="{{ isset($deal) ? $deal->client_phone : '' }}" 
                                 class="form-control"
                                 required>
                         </label>
@@ -430,7 +437,7 @@
                     <div class="form-group-deal">
                         <label>Email клиента:
                             <input type="email" name="client_email" id="emailField" 
-                                value="{{ $deal->client_email }}">
+                                value="{{ isset($deal) ? $deal->client_email : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
@@ -439,7 +446,7 @@
                                 <option value="">-- Не выбрано --</option>
                                 @foreach (\App\Models\User::where('status', 'partner')->get() as $partner)
                                     <option value="{{ $partner->id }}" 
-                                        {{ $deal->office_partner_id == $partner->id ? 'selected' : '' }}>
+                                        {{ isset($deal) && $deal->office_partner_id == $partner->id ? 'selected' : '' }}>
                                         {{ $partner->name }}
                                     </option>
                                 @endforeach
@@ -449,7 +456,7 @@
                     <div class="form-group-deal">
                         <label>Кто делает комплектацию:
                             <input type="text" name="completion_responsible" id="completionResponsibleField"
-                                value="{{ $deal->completion_responsible }}">
+                                value="{{ isset($deal) ? $deal->completion_responsible : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
@@ -458,7 +465,7 @@
                                 <option value="">-- Не выбрано --</option>
                                 @foreach (\App\Models\User::where('status', 'coordinator')->get() as $coordinator)
                                     <option value="{{ $coordinator->id }}" 
-                                        {{ $deal->coordinator_id == $coordinator->id ? 'selected' : '' }}>
+                                        {{ isset($deal) && $deal->coordinator_id == $coordinator->id ? 'selected' : '' }}>
                                         {{ $coordinator->name }}
                                     </option>
                                 @endforeach
@@ -470,7 +477,7 @@
                             <select name="responsibles[]" id="responsiblesField" class="select2-field" multiple>
                                 @foreach (\App\Models\User::whereIn('status', ['designer', 'coordinator'])->get() as $responsible)
                                     <option value="{{ $responsible->id }}" 
-                                        {{ in_array($responsible->id, $deal->users->pluck('id')->toArray()) ? 'selected' : '' }}>
+                                        {{ isset($deal) && in_array($responsible->id, $deal->users->pluck('id')->toArray()) ? 'selected' : '' }}>
                                         {{ $responsible->name }}
                                     </option>
                                 @endforeach
@@ -480,35 +487,35 @@
                 </fieldset>
 
                 <!-- Модуль: Работа над проектом -->
-                <fieldset class="module__deal" id="module-rabota">
+                <fieldset class="module__deal module__deal-deal" id="module-rabota">
                     <legend>Работа над проектом</legend>
                     <div class="form-group-deal">
                         <label>Комментарии по замерам:
-                            <textarea name="measurement_comments" id="measurementCommentsField" maxlength="1000">{{ $deal->measurement_comments }}</textarea>
+                            <textarea name="measurement_comments" id="measurementCommentsField" maxlength="1000">{{ isset($deal) ? $deal->measurement_comments : '' }}</textarea>
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Замеры (файл):
                             <input type="file" name="measurements_file" id="measurementsFileField"
                                 accept=".pdf,.dwg,image/*">
-                            @if($deal->measurements_file)
+                            @if(isset($deal) && $deal->measurements_file)
                                 <a href="{{ asset('storage/' . $deal->measurements_file) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Дата старта:
-                            <input type="date" name="start_date" id="startDateField" value="{{ $deal->start_date }}">
+                            <input type="date" name="start_date" id="startDateField" value="{{ isset($deal) ? $deal->start_date : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Общий срок проекта (в днях):
-                            <input type="number" name="project_duration" id="projectDurationField" value="{{ $deal->project_duration }}">
+                            <input type="number" name="project_duration" id="projectDurationField" value="{{ isset($deal) ? $deal->project_duration : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Дата завершения:
-                            <input type="date" name="project_end_date" id="projectEndDateField" value="{{ $deal->project_end_date }}">
+                            <input type="date" name="project_end_date" id="projectEndDateField" value="{{ isset($deal) ? $deal->project_end_date : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
@@ -516,7 +523,7 @@
                             <select name="architect_id" id="architectField">
                                 <option value="">-- Не выбрано --</option>
                                 @foreach (\App\Models\User::where('status', 'architect')->get() as $architect)
-                                    <option value="{{ $architect->id }}" {{ $deal->architect_id == $architect->id ? 'selected' : '' }}>{{ $architect->name }}</option>
+                                    <option value="{{ $architect->id }}" {{ isset($deal) && $deal->architect_id == $architect->id ? 'selected' : '' }}>{{ $architect->name }}</option>
                                 @endforeach
                             </select>
                         </label>
@@ -525,7 +532,7 @@
                         <label>Планировка финал (PDF):
                             <input type="file" name="final_floorplan" id="finalFloorplanField"
                                 accept="application/pdf">
-                            @if($deal->final_floorplan)
+                            @if(isset($deal) && $deal->final_floorplan)
                                 <a href="{{ asset('storage/' . $deal->final_floorplan) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>
@@ -535,7 +542,7 @@
                             <select name="designer_id" id="designerField">
                                 <option value="">-- Не выбрано --</option>
                                 @foreach (\App\Models\User::where('status', 'designer')->get() as $designer)
-                                    <option value="{{ $designer->id }}" {{ $deal->designer_id == $designer->id ? 'selected' : '' }}>{{ $designer->name }}</option>
+                                    <option value="{{ $designer->id }}" {{ isset($deal) && $deal->designer_id == $designer->id ? 'selected' : '' }}>{{ $designer->name }}</option>
                                 @endforeach
                             </select>
                         </label>
@@ -544,7 +551,7 @@
                         <label>Коллаж финал (PDF):
                             <input type="file" name="final_collage" id="finalCollageField"
                                 accept="application/pdf">
-                            @if($deal->final_collage)
+                            @if(isset($deal) && $deal->final_collage)
                                 <a href="{{ asset('storage/' . $deal->final_collage) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>
@@ -554,7 +561,7 @@
                             <select name="visualizer_id" id="visualizerField">
                                 <option value="">-- Не выбрано --</option>
                                 @foreach (\App\Models\User::where('status', 'visualizer')->get() as $visualizer)
-                                    <option value="{{ $visualizer->id }}" {{ $deal->visualizer_id == $visualizer->id ? 'selected' : '' }}>{{ $visualizer->name }}</option>
+                                    <option value="{{ $visualizer->id }}" {{ isset($deal) && $deal->visualizer_id == $visualizer->id ? 'selected' : '' }}>{{ $visualizer->name }}</option>
                                 @endforeach
                             </select>
                         </label>
@@ -562,14 +569,14 @@
                     <div class="form-group-deal">
                         <label>Ссылка на визуализацию:
                             <input type="url" name="visualization_link" id="visualizationLinkField"
-                                value="{{ $deal->visualization_link }}">
+                                value="{{ isset($deal) ? $deal->visualization_link : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Финал проекта (PDF):
                             <input type="file" name="final_project_file" id="finalProjectFileField"
                                 accept="application/pdf">
-                            @if($deal->final_project_file)
+                            @if(isset($deal) && $deal->final_project_file)
                                 <a href="{{ asset('storage/' . $deal->final_project_file) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>
@@ -577,12 +584,12 @@
                 </fieldset>
 
                 <!-- Модуль: Финал проекта -->
-                <fieldset class="module__deal" id="module-final">
+                <fieldset class="module__deal module__deal-deal" id="module-final">
                     <legend>Финал проекта</legend>
                     <div class="form-group-deal">
                         <label>Акт выполненных работ (PDF):
                             <input type="file" name="work_act" id="workActField" accept="application/pdf">
-                            @if($deal->work_act)
+                            @if(isset($deal) && $deal->work_act)
                                 <a href="{{ asset('storage/' . $deal->work_act) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>
@@ -590,25 +597,25 @@
                     <div class="form-group-deal">
                         <label>Оценка за проект (от клиента):
                             <input type="number" name="client_project_rating" id="clientProjectRatingField"
-                                value="{{ $deal->client_project_rating }}" min="0" max="10" step="0.5">
+                                value="{{ isset($deal) ? $deal->client_project_rating : '' }}" min="0" max="10" step="0.5">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Оценка архитектора (Клиент):
                             <input type="number" name="architect_rating_client" id="architectRatingClientField"
-                                value="{{ $deal->architect_rating_client }}" min="0" max="10" step="0.5">
+                                value="{{ isset($deal) ? $deal->architect_rating_client : '' }}" min="0" max="10" step="0.5">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Оценка архитектора (Партнер):
                             <input type="number" name="architect_rating_partner" id="architectRatingPartnerField"
-                                value="{{ $deal->architect_rating_partner }}" min="0" max="10" step="0.5">
+                                value="{{ isset($deal) ? $deal->architect_rating_partner : '' }}" min="0" max="10" step="0.5">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Оценка архитектора (Координатор):
                             <input type="number" name="architect_rating_coordinator"
-                                id="architectRatingCoordinatorField" value="{{ $deal->architect_rating_coordinator }}" min="0" max="10"
+                                id="architectRatingCoordinatorField" value="{{ isset($deal) ? $deal->architect_rating_coordinator : '' }}" min="0" max="10"
                                 step="0.5">
                         </label>
                     </div>
@@ -616,20 +623,20 @@
                         <label>Скрин чата с оценкой и актом (JPEG):
                             <input type="file" name="chat_screenshot" id="chatScreenshotField"
                                 accept="image/jpeg,image/jpg,image/png">
-                            @if($deal->chat_screenshot)
+                            @if(isset($deal) && $deal->chat_screenshot)
                                 <a href="{{ asset('storage/' . $deal->chat_screenshot) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Комментарий координатора:
-                            <textarea name="coordinator_comment" id="coordinatorCommentField" maxlength="1000">{{ $deal->coordinator_comment }}</textarea>
+                            <textarea name="coordinator_comment" id="coordinatorCommentField" maxlength="1000">{{ isset($deal) ? $deal->coordinator_comment : '' }}</textarea>
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Исходный файл архикад (pln, dwg):
                             <input type="file" name="archicad_file" id="archicadFileField" accept=".pln,.dwg">
-                            @if($deal->archicad_file)
+                            @if(isset($deal) && $deal->archicad_file)
                                 <a href="{{ asset('storage/' . $deal->archicad_file) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>
@@ -637,26 +644,26 @@
                 </fieldset>
 
                 <!-- Модуль: О сделке -->
-                <fieldset class="module__deal" id="module-o-sdelke">
+                <fieldset class="module__deal module__deal-deal" id="module-o-sdelke">
                     <legend>О сделке</legend>
                     <div class="form-group-deal">
                         <label>№ договора:
-                            <input type="text" name="contract_number" id="contractNumberField" value="{{ $deal->contract_number }}">
+                            <input type="text" name="contract_number" id="contractNumberField" value="{{ isset($deal) ? $deal->contract_number : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Дата создания сделки:
-                            <input type="date" name="created_date" id="createdDateField" value="{{ $deal->created_date }}">
+                            <input type="date" name="created_date" id="createdDateField" value="{{ isset($deal) ? $deal->created_date : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Дата оплаты:
-                            <input type="date" name="payment_date" id="paymentDateField" value="{{ $deal->payment_date }}">
+                            <input type="date" name="payment_date" id="paymentDateField" value="{{ isset($deal) ? $deal->payment_date : '' }}">
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Сумма Заказа:
-                            <input type="number" name="total_sum" id="totalSumField" value="{{ $deal->total_sum }}"
+                            <input type="number" name="total_sum" id="totalSumField" value="{{ isset($deal) ? $deal->total_sum : '' }}"
                                 step="0.01">
                         </label>
                     </div>
@@ -664,25 +671,25 @@
                         <label>Приложение договора:
                             <input type="file" name="contract_attachment" id="contractAttachmentField"
                                 accept="application/pdf,image/jpeg,image/jpg,image/png">
-                            @if($deal->contract_attachment)
+                            @if(isset($deal) && $deal->contract_attachment)
                                 <a href="{{ asset('storage/' . $deal->contract_attachment) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>
                     </div>
                     <div class="form-group-deal">
                         <label>Примечание:
-                            <textarea name="deal_note" id="dealNoteField">{{ $deal->deal_note }}</textarea>
+                            <textarea name="deal_note" id="dealNoteField">{{ isset($deal) ? $deal->deal_note : '' }}</textarea>
                         </label>
                     </div>
                 </fieldset>
 
                 <!-- Модуль: Аватар сделки -->
-                <fieldset class="module__deal" id="module-avatar">
+                <fieldset class="module__deal module__deal-deal" id="module-avatar">
                     <legend>Аватар сделки</legend>
                     <div class="form-group-deal">
                         <label>Аватар сделки:
                             <input type="file" name="avatar" id="avatarField" accept="image/*">
-                            @if($deal->avatar_path)
+                            @if(isset($deal) && $deal->avatar_path)
                                 <a href="{{ asset('storage/' . $deal->avatar_path) }}" target="_blank">Просмотр файла</a>
                             @endif
                         </label>

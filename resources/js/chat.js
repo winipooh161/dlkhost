@@ -1,12 +1,14 @@
 import { initializeApp } from "firebase/app";
 import { getMessaging, onMessage } from "firebase/messaging";
 import { showBrowserNotification, showModalNotification } from './firebase-init';
+import { initializeEmojiPicker } from './emoji-picker';
+import { attachMessageActionListeners } from './message-actions';
+import { formatTime, escapeHtml, scrollToBottom, filterMessages, renderMessages } from './chat-utils';
+import { showChatNotification, checkForNewMessages } from './notification';
 
-// Добавляем проверку разрешений на уведомления при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     // Проверяем и запрашиваем разрешения на уведомления, если еще не запрошены
     if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-        // Показываем пользовательский интерфейс для запроса разрешений
         const notificationBanner = document.createElement('div');
         notificationBanner.className = 'notification-permission-banner';
         notificationBanner.innerHTML = `
@@ -41,248 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let pinnedOnly = false;
     let notifiedChats = new Set();
 
-    function initializeEmojiPicker(textarea) {
-        const container = textarea.parentElement;
-        const emojiButton = document.createElement('button');
-        const emojiPicker = document.createElement('div');
-        emojiButton.textContent = "😉";
-        emojiButton.type = "button";
-        emojiButton.classList.add('emoji-button');
-        emojiPicker.classList.add('emoji-picker');
-        emojiPicker.style.position = 'absolute';
-        emojiPicker.style.bottom = '50px';
-        emojiPicker.style.left = '10px';
-        const emojis = [
-            "😀","😁","😂","🤣","😃","😄","😅","😆","😉","😊","😍","😘","😜","😎","😭","😡",
-            "😇","😈","🙃","🤔","😥","😓","🤩","🥳","🤯","🤬","🤡","👻","💀","👽","🤖","🎃",
-            "🐱","🐶","🐭","🐹","🐰","🦊","🐻","🐼","🦁","🐮","🐷","🐸","🐵","🐔","🐧","🐦",
-            "🌹","🌻","🌺","🌷","🌼","🍎","🍓","🍒","🍇","🍉","🍋","🍊","🍌","🥝","🍍","🥭"
-        ];
-        let emojiHTML = '';
-        emojis.forEach(emoji => { emojiHTML += `<span class="emoji-item">${emoji}</span>`; });
-        emojiPicker.innerHTML = emojiHTML;
-        emojiPicker.addEventListener('click', (e) => {
-            if (e.target.classList.contains('emoji-item')) {
-                const emoji = e.target.textContent;
-                const cursorPos = textarea.selectionStart;
-                const textBefore = textarea.value.substring(0, cursorPos);
-                const textAfter = textarea.value.substring(cursorPos);
-                textarea.value = textBefore + emoji + textAfter;
-                const newPos = cursorPos + emoji.length;
-                textarea.selectionStart = newPos;
-                textarea.selectionEnd = newPos;
-                textarea.focus();
-            }
-        });
-        container.appendChild(emojiButton);
-        container.appendChild(emojiPicker);
-        emojiPicker.style.display = "none";
-        emojiButton.addEventListener('click', (event) => {
-            event.stopPropagation();
-            emojiPicker.style.display = (emojiPicker.style.display === "none") ? "flex" : "none";
-        });
-        document.addEventListener('click', (event) => {
-            if (!emojiPicker.contains(event.target) && !emojiButton.contains(event.target)) {
-                emojiPicker.style.display = "none";
-            }
-        });
-    }
-
-    function showChatList() {
-        document.querySelector('.user-list').classList.add('active');
-        document.querySelector('.chat-box').classList.remove('active');
-    }
-
     function showChatBox() {
         document.querySelector('.user-list').classList.remove('active');
         document.querySelector('.chat-box').classList.add('active');
     }
 
-    function formatTime(timestamp) {
-        const date = new Date(timestamp);
-        return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    }
-
-    function escapeHtml(text) {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-        return text.replace(/[&<>"']/g, m => map[m]);
-    }
-
-    function scrollToBottom() {
-        const chatMessagesContainer = document.getElementById('chat-messages');
-        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
-    }
-
-    function filterMessages() {
-        document.querySelectorAll('#chat-messages ul li').forEach(li => {
-            li.style.display = pinnedOnly ? (li.classList.contains('pinned') ? '' : 'none') : '';
-        });
-    }
-
-    function renderMessages(messages, currentUserId) {
-        const chatMessagesContainer = document.getElementById('chat-messages');
-        const chatMessagesList = chatMessagesContainer.querySelector('ul');
-        let html = '';
-        messages.forEach(message => {
-            if (!loadedMessageIds.has(message.id)) {
-                if (message.message_type === 'notification' || message.is_system) {
-                    // Системные уведомления отображаются без возможности взаимодействия
-                    html += `
-                        <li class="system-notification" data-id="${message.id}">
-                            ${message.message}
-                            <span class="message-time">${formatTime(message.created_at)}</span>
-                        </li>
-                    `;
-                } else {
-                    const isMyMessage = (message.sender_id === currentUserId);
-                    const liClass = message.message_type === 'notification' 
-                        ? 'notification-message' 
-                        : (isMyMessage ? 'my-message' : 'other-message');
-                    const pinnedClass = message.is_pinned ? 'pinned' : '';
-                    let readStatus = '';
-                    if (isMyMessage && message.is_read) {
-                        readStatus = '<span class="read-status">✓✓</span>';
-                    }
-                    let contentHtml = '';
-                    if (message.message && message.message.trim() !== '') {
-                        if (message.message_type === 'notification') {
-                            contentHtml += message.message; // Вставляем HTML для уведомлений
-                        } else {
-                            contentHtml += `<div>${escapeHtml(message.message)}</div>`;
-                        }
-                    }
-                    
-                    // Проверяем, существуют ли вложения и являются ли они массивом
-                    if (message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0) {
-                        message.attachments.forEach(attachment => {
-                            if (attachment && attachment.mime && attachment.mime.startsWith('image/')) {
-                                contentHtml += `<div><img src="${attachment.url}" alt="Image" style="max-width:100%; border-radius:4px;"></div>`;
-                            } else if (attachment && attachment.url) {
-                                contentHtml += `<div><a href="${attachment.url}" target="_blank">${escapeHtml(attachment.original_file_name || 'Файл')}</a></div>`;
-                            }
-                        });
-                    }
-                    
-                    if(contentHtml.trim() === ''){
-                        contentHtml = `<div style="color:#888;">[Пустое сообщение]</div>`;
-                    }
-                    let actionsHtml = '';
-                    if (isMyMessage) {
-                        actionsHtml = `
-                            <div class="message-controls">
-                                <button class="delete-message" data-id="${message.id}"><img src="${deleteImgUrl}" alt="Удалить"></button>
-                                ${message.is_pinned 
-                                    ? `<button class="unpin-message" data-id="${message.id}"><img src="${unpinImgUrl}" alt="Открепить"></button>`
-                                    : `<button class="pin-message" data-id="${message.id}"><img src="${pinImgUrl}" alt="Закрепить"></button>`
-                                }
-                            </div>
-                        `;
-                    }
-                    html += `
-                        <li class="${liClass} ${pinnedClass}" data-id="${message.id}">
-                            <div><strong>${isMyMessage ? 'Вы' : escapeHtml(message.sender_name || 'Неизвестно')}</strong></div>
-                            ${contentHtml}
-                            ${actionsHtml}
-                            <span class="message-time">${formatTime(message.created_at)}</span>
-                            ${readStatus}
-                        </li>
-                    `;
-                }
-                loadedMessageIds.add(message.id);
-            }
-        });
-        if (html) {
-            chatMessagesList.insertAdjacentHTML('beforeend', html);
-            scrollToBottom();
-            attachMessageActionListeners();
-            filterMessages();
-        }
-    }
-
-    function attachMessageActionListeners() {
-        document.querySelectorAll('.delete-message').forEach(button => {
-            button.onclick = function() {
-                const messageId = this.getAttribute('data-id');
-                if (confirm('Удалить сообщение?')) {
-                    fetch(`/chats/${currentChatType}/${currentChatId}/messages/${messageId}`, {
-                        method: 'DELETE',
-                        headers: {
-                            'X-CSRF-TOKEN': csrfToken,
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            this.closest('li').remove();
-                        } else {
-                            alert(data.error || 'Ошибка удаления сообщения');
-                        }
-                    })
-                    .catch(error => console.error('Ошибка:', error));
-                }
-            };
-        });
-        document.querySelectorAll('.pin-message').forEach(button => {
-            button.onclick = function() {
-                const messageId = this.getAttribute('data-id');
-                fetch(`/chats/${currentChatType}/${currentChatId}/messages/${messageId}/pin`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        this.innerHTML = `<img src="${unpinImgUrl}" alt="Открепить">`;
-                        this.classList.remove('pin-message');
-                        this.classList.add('unpin-message');
-                        let li = this.closest('li');
-                        li.classList.add('pinned');
-                        if (li && !li.querySelector('.pinned-label')) {
-                            let span = document.createElement('span');
-                            span.classList.add('pinned-label');
-                            span.textContent = ' [Закреплено]';
-                            li.querySelector('div').appendChild(span);
-                        }
-                        filterMessages();
-                    } else {
-                        alert(data.error || 'Ошибка закрепления сообщения');
-                    }
-                })
-                .catch(error => console.error('Ошибка:', error));
-            };
-        });
-        document.querySelectorAll('.unpin-message').forEach(button => {
-            button.onclick = function() {
-                const messageId = this.getAttribute('data-id');
-                fetch(`/chats/${currentChatType}/${currentChatId}/messages/${messageId}/unpin`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        this.innerHTML = `<img src="${pinImgUrl}" alt="Закрепить">`;
-                        this.classList.remove('unpin-message');
-                        this.classList.add('pin-message');
-                        let li = this.closest('li');
-                        li.classList.remove('pinned');
-                        let pinnedLabel = li.querySelector('.pinned-label');
-                        if (pinnedLabel) { pinnedLabel.remove(); }
-                        filterMessages();
-                    } else { alert(data.error || 'Ошибка открепления сообщения'); }
-                })
-                .catch(error => console.error('Ошибка:', error));
-            };
-        });
-    }
-
+    // Обновляем глобальную переменную lastLoadedMessageId при загрузке сообщений
     function loadMessages(chatId, chatType) {
         currentChatId = chatId;
         currentChatType = chatType;
@@ -302,7 +68,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 return response.json();
             })
             .then(data => {
-                renderMessages(data.messages, currentUserId);
+                // Очищаем loadedMessageIds для нового чата
+                loadedMessageIds.clear();
+                
+                // Обновляем lastLoadedMessageId на основе полученных сообщений
+                if (data.messages && data.messages.length > 0) {
+                    const lastMsg = data.messages[data.messages.length - 1];
+                    window.lastLoadedMessageId = lastMsg.id;
+                }
+                
+                renderMessages(data.messages, currentUserId, loadedMessageIds, csrfToken, currentChatType, currentChatId);
                 markMessagesAsRead(chatId, chatType);
                 subscribeToChat(chatId, chatType);
             })
@@ -334,7 +109,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(data => {
             if (data.message) {
-                renderMessages([data.message], data.message.sender_id);
+                renderMessages([data.message], data.message.sender_id, loadedMessageIds, csrfToken, currentChatType, currentChatId);
                 chatMessageInput.value = '';
                 document.querySelector('.file-input').value = '';
             }
@@ -354,47 +129,55 @@ document.addEventListener('DOMContentLoaded', () => {
         // if(window.Echo) {
         //     window.Echo.private(`chat.${chatType}.${chatId}`)
         //         .listen('MessageSent', (e) => {
-        //             renderMessages([e.message], e.message.sender_id);
+        //             renderMessages([e.message], e.message.sender_id, loadedMessageIds, csrfToken, currentChatType, currentChatId);
         //             markMessagesAsRead(chatId, chatType);
         //         });
         // }
     }
 
-    function showChatNotification(message, chatId = null, chatType = null) {
-        // Используем импортированную функцию для показа уведомления
-        showModalNotification('Новое сообщение', message, chatId, chatType);
-    }
-
-    function checkForNewMessages() {
-        fetch('/chats/unread-counts', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-            },
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.unread_counts && data.unread_counts.length > 0) {
-                data.unread_counts.forEach(chat => {
-                    if (chat.unread_count > 0 && !notifiedChats.has(chat.id)) {
-                        const message = `У вас ${chat.unread_count} новых сообщений в чате ${chat.name}`;
-                        // Используем импортированные функции вместо своих
-                        showBrowserNotification('Новое сообщение', message, { chatId: chat.id, chatType: chat.type });
-                        notifiedChats.add(chat.id);
-                    }
-                });
-            }
-        })
-        .catch(e => console.error('Ошибка при проверке новых сообщений:', e));
-    }
-
-    setInterval(checkForNewMessages, 5000); // Проверка новых сообщений каждые 5 секунд
+    // Изменяем функцию периодической проверки новых сообщений
+    setInterval(() => {
+        if (currentChatId && currentChatType) {
+            const chatMessagesContainer = document.getElementById('chat-messages');
+            if (!chatMessagesContainer) return;
+            
+            const chatMessagesList = chatMessagesContainer.querySelector('ul');
+            if (!chatMessagesList) return;
+            
+            // Используем lastLoadedMessageId вместо поиска последнего элемента
+            const lastMessageId = window.lastLoadedMessageId || 0;
+            
+            fetch(`/chats/${currentChatType}/${currentChatId}/new-messages`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    last_message_id: lastMessageId
+                }),
+            })
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return r.json();
+            })
+            .then(data => {
+                if (data.messages && data.messages.length > 0) {
+                    // Обновляем lastLoadedMessageId на основе новых сообщений
+                    const lastMsg = data.messages[data.messages.length - 1];
+                    window.lastLoadedMessageId = lastMsg.id;
+                    
+                    renderMessages(data.messages, data.current_user_id, loadedMessageIds, csrfToken, currentChatType, currentChatId);
+                    markMessagesAsRead(currentChatId, currentChatType);
+                }
+            })
+            .catch(e => {
+                console.error('Ошибка при получении новых сообщений:', e);
+            });
+        }
+    }, 1000); // Проверка новых сообщений каждую секунду
 
     const chatList = document.getElementById('chat-list');
     if (chatList) {
@@ -510,60 +293,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (firstChat) firstChat.click();
     });
 
-    setInterval(() => {
-        if (currentChatId && currentChatType) {
-            const chatMessagesContainer = document.getElementById('chat-messages');
-            const chatMessagesList = chatMessagesContainer.querySelector('ul');
-            fetch(`/chats/${currentChatType}/${currentChatId}/new-messages`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken,
-                },
-                body: JSON.stringify({
-                    last_message_id: chatMessagesList.lastElementChild ? parseInt(chatMessagesList.lastElementChild.getAttribute('data-id')) : 0
-                }),
-            })
-            .then(r => {
-                if (!r.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return r.json();
-            })
-            .then(data => {
-                if (data.messages) {
-                    renderMessages(data.messages, data.current_user_id);
-                    markMessagesAsRead(currentChatId, currentChatType);
-                }
-            })
-            .catch(e => {
-                console.error('Ошибка при получении новых сообщений:', e);
-            });
-        }
-    }, 1000); // Проверка новых сообщений каждую секунду
-
-    // Добавляем обработчик для прокрутки к сообщению при клике на ссылку
-    document.addEventListener('click', function(e) {
-        if (e.target.matches('.notification-message a[data-message-id]')) {
-            e.preventDefault();
-            const messageId = e.target.dataset.messageId;
-            const targetMessage = document.querySelector(`li[data-id="${messageId}"]`);
-            if (targetMessage) {
-                targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                targetMessage.style.backgroundColor = '#007ab6'; // Изменено с #fff3cd
-                setTimeout(() => {
-                    targetMessage.style.backgroundColor = '';
-                }, 2000);
-            }
-        }
-    });
-
     const togglePinnedButton = document.getElementById('toggle-pinned');
     if (togglePinnedButton) {
         togglePinnedButton.addEventListener('click', () => {
             pinnedOnly = !pinnedOnly;
             togglePinnedButton.textContent = pinnedOnly ? 'Показать все сообщения' : 'Показать только закрепленные';
-            filterMessages();
+            filterMessages(pinnedOnly);  // Передаем параметр pinnedOnly
         });
     }
+
 });

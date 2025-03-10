@@ -13,7 +13,12 @@ export default async () => {
       laravel.default({
         input: [
           'resources/js/bootstrap.js',
-          'resources/js/firebase-init.js', // Добавляем новый файл инициализации Firebase
+          'resources/js/notification.js', 
+'resources/js/chat-main.js',
+          'resources/js/message-actions.js',
+          'resources/js/emoji-picker.js',
+          'resources/js/chat-utils.js',
+          'resources/js/firebase-init.js',
           'resources/js/chat.js', 
           'resources/css/style.css',
           'resources/css/font.css',

@@ -34,14 +34,17 @@ class Message extends Model
         'read_at',
         'is_pinned',
         'is_system',
-        'message_type'
+        'message_type',
+        'attachments',
+        'file_path'
     ];
 
     protected $casts = [
         'is_read' => 'boolean',
         'read_at' => 'datetime',
         'is_pinned' => 'boolean',
-        'is_system' => 'boolean'
+        'is_system' => 'boolean',
+        'attachments' => 'array'
     ];
 
     /**
@@ -50,6 +53,14 @@ class Message extends Model
     public function sender()
     {
         return $this->belongsTo(User::class, 'sender_id');
+    }
+
+    /**
+     * Get the receiver of this message.
+     */
+    public function receiver()
+    {
+        return $this->belongsTo(User::class, 'receiver_id');
     }
 
     /**
