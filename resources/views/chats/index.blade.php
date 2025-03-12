@@ -1,7 +1,5 @@
 <body>
     <!-- Передаем данные пользователя -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
     <script>
         window.Laravel = {
             user: @json([
@@ -13,20 +11,21 @@
         window.pinImgUrl = "{{ asset('storage/icon/pin.svg') }}";
         window.unpinImgUrl = "{{ asset('storage/icon/unpin.svg') }}";
         window.deleteImgUrl = "{{ asset('storage/icon/deleteMesg.svg') }}";
+    </script>
 
-        // Регистрация service worker и получение токена FCM
+    <!-- Регистрация Service Worker для Firebase Messaging -->
+    <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/firebase-messaging-sw.js')
-                .then(function(registration) {
-                    console.log('Service Worker зарегистрирован с областью:', registration.scope);
-                    return registration;
-                }).catch(function(err) {
+                .then(registration => {
+                    console.log('Service Worker зарегистрирован:', registration.scope);
+                })
+                .catch(err => {
                     console.error('Ошибка регистрации Service Worker:', err);
                 });
         }
-
-        // Удалена инициализация Firebase и проверка разрешений на уведомления
     </script>
+
 
     @if (isset($supportChat) && $supportChat)
         <!-- Чат технической поддержки -->
@@ -101,15 +100,15 @@
                                 <div class="user-list__avatar">
                                     @if($chat['type'] == 'group')
                                         @if(!empty($chat['avatar_url']) && file_exists(public_path($chat['avatar_url'])))
-                                            <img src="{{ asset($chat['avatar_url']) }}" alt="{{ $chat['name'] }}" width="40" height="40">
+                                            <img src="{{ asset($chat['avatar_url']) }}" alt="{{ $chat['name'] }}" width="40" height="40" loading="lazy">
                                         @else
-                                            <img src="{{ asset('storage/avatars/group_default.png') }}" alt="{{ $chat['name'] }}" width="40" height="40">
+                                            <img src="{{ asset('storage/avatars/group_default.png') }}" alt="{{ $chat['name'] }}" width="40" height="40" loading="lazy">
                                         @endif
                                     @else
                                         @if(!empty($chat['avatar_url']) && file_exists(public_path($chat['avatar_url'])))
-                                            <img src="{{ asset($chat['avatar_url']) }}" alt="{{ $chat['name'] }}" width="40" height="40">
+                                            <img src="{{ asset($chat['avatar_url']) }}" alt="{{ $chat['name'] }}" width="40" height="40" loading="lazy">
                                         @else
-                                            <img src="{{ asset('storage/avatars/user_default.png') }}" alt="{{ $chat['name'] }}" width="40" height="40">
+                                            <img src="{{ asset('storage/avatars/user_default.png') }}" alt="{{ $chat['name'] }}" width="40" height="40" loading="lazy">
                                         @endif
                                     @endif
                                 </div>

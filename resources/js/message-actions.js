@@ -1,3 +1,5 @@
+import { filterMessages } from './chat-utils';
+
 export function attachMessageActionListeners(csrfToken, currentChatType, currentChatId) {
     document.querySelectorAll('.delete-message').forEach(button => {
         button.onclick = function() {

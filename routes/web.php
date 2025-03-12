@@ -154,7 +154,6 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::post('/chats/search', [ChatController::class, 'search'])->name('chats.search');
-    Route::get('/chats/unread-counts', [ChatController::class, 'getUnreadCounts'])->name('chats.unreadCounts');
 });
 
 

@@ -22,6 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.chat-box').classList.add('active');
     }
 
+    // Новый универсальный fetch с async/await
+    async function fetchJSON(url, options = {}) {
+        try {
+            const response = await fetch(url, options);
+            if (!response.ok) {
+                const errText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errText}`);
+            }
+            return await response.json();
+        } catch (err) {
+            console.error('Fetch error:', err);
+            throw err;
+        }
+    }
+
     // Обновляем глобальную переменную lastLoadedMessageId при загрузке сообщений
     function loadMessages(chatId, chatType) {
         currentChatId = chatId;
@@ -31,33 +46,18 @@ document.addEventListener('DOMContentLoaded', () => {
         chatMessagesList.innerHTML = '';
         loadedMessageIds.clear();
         const chatItem = document.querySelector(`[data-chat-id="${chatId}"][data-chat-type="${chatType}"] h5`);
-        const chatHeader = document.getElementById('chat-header');
-        chatHeader.textContent = chatItem ? chatItem.textContent : 'Выберите чат для общения';
+        document.getElementById('chat-header').textContent = chatItem ? chatItem.textContent : 'Выберите чат для общения';
 
-        fetch(`/chats/${chatType}/${chatId}/messages`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
+        fetchJSON(`/chats/${chatType}/${chatId}/messages`)
             .then(data => {
-                // Очищаем loadedMessageIds для нового чата
-                loadedMessageIds.clear();
-                
-                // Обновляем lastLoadedMessageId на основе полученных сообщений
                 if (data.messages && data.messages.length > 0) {
-                    const lastMsg = data.messages[data.messages.length - 1];
-                    window.lastLoadedMessageId = lastMsg.id;
+                    window.lastLoadedMessageId = data.messages[data.messages.length - 1].id;
                 }
-                
                 renderMessages(data.messages, currentUserId, loadedMessageIds, csrfToken, currentChatType, currentChatId);
                 markMessagesAsRead(chatId, chatType);
                 subscribeToChat(chatId, chatType);
             })
-            .catch(error => {
-                console.error('Ошибка загрузки сообщений:', error);
-            });
+            .catch(error => console.error('Ошибка загрузки сообщений:', error));
     }
 
     function sendMessage() {
@@ -98,8 +98,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }).catch(e => console.error('Ошибка при пометке сообщений как прочитанных:', e));
     }
 
+    // Добавляем функцию для подписки на чат с использованием Laravel Echo
     function subscribeToChat(chatId, chatType) {
-        // Функция оставлена пустой, так как Pusher и Echo были удалены в оригинале
+        if (window.Echo) {
+            window.Echo.channel(`chat.${chatType}.${chatId}`)
+                .listen('MessageSent', event => {
+                    console.log('Новое сообщение через веб-сокет:', event);
+                    // Добавляем полученное сообщение, если его ещё нет
+                    if (!loadedMessageIds.has(event.message.id)) {
+                        renderMessages([event.message], currentUserId, loadedMessageIds, csrfToken, currentChatType, currentChatId);
+                        markMessagesAsRead(chatId, chatType);
+                    }
+                });
+        }
+        // ...existing code or fallback...
     }
 
     // Изменяем функцию периодической проверки новых сообщений
@@ -144,16 +156,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Ошибка при получении новых сообщений:', e);
             });
         }
-    }, 1000); // Проверка новых сообщений каждую секунду
+    }, 2000); // Проверка новых сообщений каждые 2 секунды
 
-    const chatList = document.getElementById('chat-list');
-    if (chatList) {
-        chatList.addEventListener('click', (event) => {
-            const chatElement = event.target.closest('li');
-            if (!chatElement) return;
-            const chatId = chatElement.getAttribute('data-chat-id');
-            const chatType = chatElement.getAttribute('data-chat-type');
-            if (currentChatId === chatId && currentChatType === chatType) return;
+    // Функция debounce
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), delay);
+        };
+    }
+
+    // Кэширование DOM-элементов example:
+    const chatListElem = document.getElementById('chat-list');
+    if(chatListElem){
+        chatListElem.addEventListener('click', event => {
+            const li = event.target.closest('li');
+            if (!li) return;
+            const chatId = li.getAttribute('data-chat-id');
+            const chatType = li.getAttribute('data-chat-type');
+            if(currentChatId === chatId && currentChatType === chatType) return;
             loadMessages(chatId, chatType);
         });
     }
@@ -161,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-chats');
     const searchResults = document.getElementById('search-results');
     if (searchInput) {
-        searchInput.addEventListener('input', function() {
+        searchInput.addEventListener('input', debounce(function() {
             const query = searchInput.value.trim().toLowerCase();
             if (query === '') {
                 searchResults.style.display = 'none';
@@ -225,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                 .catch(e => console.error('Ошибка поиска:', e));
             }
-        });
+        }, 300));
     }
 
     function attachFileListener() {
@@ -255,10 +277,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initializeEmojiPicker(chatMessageInput);
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const firstChat = chatList ? chatList.querySelector('li') : null;
-        if (firstChat) firstChat.click();
-    });
+    const firstChat = document.getElementById('chat-list')?.querySelector('li');
+    if (firstChat) {
+        firstChat.click();
+    }
 
     const togglePinnedButton = document.getElementById('toggle-pinned');
     if (togglePinnedButton) {
@@ -270,5 +292,40 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     checkForNewMessages();
+
+    // Убираем старый обработчик скролла
+    // ...existing scroll event listener... 
+
+    // Добавляем бесконечную прокрутку через IntersectionObserver
+    const chatMessagesContainer = document.getElementById('chat-messages');
+    if (chatMessagesContainer) {
+        const sentinel = document.createElement('div');
+        sentinel.id = 'scroll-sentinel';
+        chatMessagesContainer.appendChild(sentinel);
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const currentPage = parseInt(chatMessagesContainer.getAttribute('data-page') || '1');
+                    if (currentChatId && currentChatType) {
+                        fetchJSON(`/chats/${currentChatType}/${currentChatId}/messages?page=${currentPage + 1}`)
+                            .then(data => {
+                                if (data.messages && data.messages.length > 0) {
+                                    // ...existing code для формирования HTML сообщений...
+                                    // Обновляем data-page
+                                    chatMessagesContainer.setAttribute('data-page', currentPage + 1);
+                                }
+                            })
+                            .catch(err => console.error('Ошибка подгрузки старых сообщений:', err));
+                    } else {
+                        console.warn('Неверные параметры чата: currentChatId или currentChatType не установлены');
+                    }
+                }
+            });
+        }, {
+            root: chatMessagesContainer,
+            threshold: 1.0
+        });
+        observer.observe(sentinel);
+    }
 
 });

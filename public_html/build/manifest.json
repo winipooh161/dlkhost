@@ -1,13 +1,13 @@
 {
-  "_index.esm2017-NZQW5Whv.js": {
-    "file": "assets/index.esm2017-NZQW5Whv.js",
+  "_index.esm2017-BXvIz_HN.js": {
+    "file": "assets/index.esm2017-BXvIz_HN.js",
     "name": "index.esm2017"
   },
-  "_notification-COxFhJKv.js": {
-    "file": "assets/notification-COxFhJKv.js",
+  "_notification-BRw4-1-H.js": {
+    "file": "assets/notification-BRw4-1-H.js",
     "name": "notification",
     "imports": [
-      "_index.esm2017-NZQW5Whv.js"
+      "_index.esm2017-BXvIz_HN.js"
     ]
   },
   "public/css/animate.css": {
@@ -119,13 +119,13 @@
     "isEntry": true
   },
   "resources/js/chat-main.js": {
-    "file": "assets/chat-main-BCdGYZYa.js",
+    "file": "assets/chat-main-BLpY_vi1.js",
     "name": "chat-main",
     "src": "resources/js/chat-main.js",
     "isEntry": true,
     "imports": [
-      "_notification-COxFhJKv.js",
-      "_index.esm2017-NZQW5Whv.js"
+      "_notification-BRw4-1-H.js",
+      "_index.esm2017-BXvIz_HN.js"
     ]
   },
   "resources/js/chat-utils.js": {
@@ -135,13 +135,13 @@
     "isEntry": true
   },
   "resources/js/chat.js": {
-    "file": "assets/chat-32TDjyUZ.js",
+    "file": "assets/chat-CzEFNs8o.js",
     "name": "chat",
     "src": "resources/js/chat.js",
     "isEntry": true,
     "imports": [
-      "_notification-COxFhJKv.js",
-      "_index.esm2017-NZQW5Whv.js"
+      "_notification-BRw4-1-H.js",
+      "_index.esm2017-BXvIz_HN.js"
     ]
   },
   "resources/js/emoji-picker.js": {
@@ -175,12 +175,12 @@
     "isEntry": true
   },
   "resources/js/notification.js": {
-    "file": "assets/notification-CQzj5qEc.js",
+    "file": "assets/notification-Dvr1xgEk.js",
     "name": "notification",
     "src": "resources/js/notification.js",
     "isEntry": true,
     "imports": [
-      "_index.esm2017-NZQW5Whv.js"
+      "_index.esm2017-BXvIz_HN.js"
     ]
   },
   "resources/js/success.js": {

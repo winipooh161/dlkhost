@@ -17,28 +17,19 @@ class FirebaseController extends Controller
      */
     public function updateToken(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required|string|max:1000',
+        $validated = $request->validate([
+            'token' => 'required|string'
         ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
 
         try {
             $user = Auth::user();
-            $user->fcm_token = $request->token;
+            $user->fcm_token = $validated['token'];
             $user->save();
-
-            return response()->json(['success' => true, 'message' => 'Токен успешно сохранен']);
+            // Можно поставить в очередь задачу для отправки уведомления о обновлении токена
+            return response()->json(['success' => true]);
         } catch (\Exception $e) {
-            Log::error('Ошибка при сохранении FCM токена: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
-                'token' => substr($request->token, 0, 20) . '...',
-                'trace' => $e->getTraceAsString()
-            ]);
-            
-            return response()->json(['error' => 'Не удалось сохранить токен'], 500);
+            Log::error('Ошибка обновления FCM токена: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => 'Не удалось обновить токен.'], 500);
         }
     }
 
@@ -122,6 +113,10 @@ class FirebaseController extends Controller
                 'Authorization' => 'key=' . $serverKey,
                 'Content-Type' => 'application/json'
             ])->post($fcmUrl, $fcmNotification);
+
+            if (!$response->successful()) {
+                throw new \Exception('FCM отправка не удалась: ' . $response->body());
+            }
 
             // Логируем результат
             Log::info('FCM запрос отправлен', [

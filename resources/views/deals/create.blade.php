@@ -24,28 +24,7 @@
             <label for="project_number">№ проекта (пример: Проект 6303): <span class="required">*</span></label>
             <input type="text" id="project_number" name="project_number" class="form-control">
         </div>
-        <div class="form-group-deal">
-            <label for="status">Статус: <span class="required">*</span></label>
-            <select id="status" name="status" class="form-control" required>
-                <option value="">-- Выберите статус --</option>
-                <option value="Ждем ТЗ">Ждем ТЗ</option>
-                <option value="Планировка">Планировка</option>
-                <option value="Коллажи">Коллажи</option>
-                <option value="Визуализация">Визуализация</option>
-                <option value="Рабочка/сбор ИП">Рабочка/сбор ИП</option>
-                <option value="Проект готов">Проект готов</option>
-                <option value="Проект завершен">Проект завершен</option>
-                <option value="Проект на паузе">Проект на паузе</option>
-                <option value="Возврат">Возврат</option>
-                <option value="В работе">В работе</option>
-                <option value="Завершенный">Завершенный</option>
-                <option value="На потом">На потом</option>
-                <option value="Регистрация">Регистрация</option>
-                <option value="Бриф прикриплен">Бриф прикриплен</option>
-                <option value="Поддержка">Поддержка</option>
-                <option value="Активный">Активный</option>
-            </select>
-        </div>
+       
         <div class="form-group-deal">
             <label for="price_service_option">Услуга по прайсу: <span class="required">*</span></label>
             <select id="price_service_option" name="price_service_option" class="form-control" required>
@@ -92,21 +71,7 @@
                  <option value="">-- Выберите город --</option>
             </select>
         </div>
-        <div class="form-group-deal">
-            <label for="start_date">Дата начала проекта:</label>
-            <!-- Значение устанавливается автоматически, поле недоступно -->
-            <input type="date" id="start_date" name="start_date" readonly>
-        </div>
-        <div class="form-group-deal">
-            <label for="project_duration">Общий срок проекта (в днях):</label>
-            <!-- Поле редактируемое -->
-            <input type="number" id="project_duration" name="project_duration">
-        </div>
-        <div class="form-group-deal">
-            <label for="project_end_date">Дата завершения проекта:</label>
-            <!-- Вычисляемое поле, недоступное для редактирования -->
-            <input type="date" id="project_end_date" name="project_end_date" readonly>
-        </div>
+       
         <script>
             document.addEventListener("DOMContentLoaded", function(){
                 // Автоматически устанавливаем сегодняшнюю дату в поле "Дата начала проекта"
@@ -158,10 +123,6 @@
             <input type="number" step="0.01" id="measuring_cost" name="measuring_cost" class="form-control">
         </div>
         <div class="form-group-deal">
-            <label for="project_budget">Бюджет проекта:</label>
-            <input type="number" step="0.01" id="project_budget" name="project_budget" class="form-control">
-        </div>
-        <div class="form-group-deal">
             <label for="client_info">Информация о клиенте:</label>
             <textarea id="client_info" name="client_info" class="form-control" rows="3"></textarea>
         </div>
@@ -177,115 +138,7 @@
             <label for="comment">Общий комментарий:</label>
             <textarea id="comment" name="comment" class="form-control" rows="3" maxlength="1000"></textarea>
         </div>
-
     </fieldset>
-
-    <fieldset class="module">
-        <legend>Аватар сделки</legend>
-        <div class="form-group-deal">
-            <div class="upload__files">
-                <h6>Загру (не более 25 МБ суммарно):</h6>
-                <div id="drop-zone">
-                    <p id="drop-zone-text">Перетащите файл сюда или нажмите, чтобы выбрать</p>
-                    <input id="fileInput" type="file" name="avatar" accept=".pdf,.xlsx,.xls,.doc,.docx,.jpg,.jpeg,.png,.heic,.heif">
-                </div>
-                <p class="error-message" style="color: red;"></p>
-                <small>Допустимые форматы: .pdf, .xlsx, .xls, .doc, .docx, .jpg, .jpeg, .png, .heic, .heif</small><br>
-                <small>Максимальный суммарный размер: 25 МБ</small>
-            </div>
-            <style>
-                .upload__files {
-                    margin: 20px 0;
-                    font-family: Arial, sans-serif;
-                }
-                /* Стилизация области перетаскивания */
-                #drop-zone {
-                    border: 2px dashed #ccc;
-                    border-radius: 6px;
-                    padding: 30px;
-                    text-align: center;
-                    cursor: pointer;
-                    position: relative;
-                    transition: background-color 0.3s ease;
-                }
-                #drop-zone.dragover {
-                    background-color: #f0f8ff;
-                    border-color: #007bff;
-                }
-                #drop-zone p {
-                    margin: 0;
-                    font-size: 16px;
-                    color: #666;
-                }
-                /* Скрываем нативное поле выбора файлов, но оставляем его доступным */
-                #fileInput {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    opacity: 0;
-                    cursor: pointer;
-                }
-            </style>
-            
-            <script>
-                const dropZone = document.getElementById('drop-zone');
-                const fileInput = document.getElementById('fileInput');
-                const dropZoneText = document.getElementById('drop-zone-text');
-            
-                // Функция обновления текста в drop zone
-                function updateDropZoneText() {
-                    const files = fileInput.files;
-                    if (files && files.length > 0) {
-                        const names = [];
-                        for (let i = 0; i < files.length; i++) {
-                            names.push(files[i].name);
-                        }
-                        dropZoneText.textContent = names.join(', ');
-                    } else {
-                        dropZoneText.textContent = "Перетащите файлы сюда или нажмите, чтобы выбрать";
-                    }
-                }
-            
-                // Предотвращаем поведение по умолчанию для событий drag-and-drop
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    dropZone.addEventListener(eventName, function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    }, false);
-                });
-            
-                // Добавляем класс при перетаскивании
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    dropZone.addEventListener(eventName, () => {
-                        dropZone.classList.add('dragover');
-                    }, false);
-                });
-            
-                // Удаляем класс, когда файлы покидают область или сброшены
-                ['dragleave', 'drop'].forEach(eventName => {
-                    dropZone.addEventListener(eventName, () => {
-                        dropZone.classList.remove('dragover');
-                    }, false);
-                });
-            
-                // Обработка события сброса (drop)
-                dropZone.addEventListener('drop', function(e) {
-                    let files = e.dataTransfer.files;
-                    fileInput.files = files;
-                    updateDropZoneText();
-                });
-            
-                // При изменении поля выбора файлов обновляем текст
-                fileInput.addEventListener('change', function() {
-                    updateDropZoneText();
-                });
-            </script>
-        </div>
-        <div id="avatar-preview" class="avatar-preview"></div>
-    </fieldset>
-    
     <button type="submit" class="btn btn-primary">Создать сделку</button>
 </form>
 

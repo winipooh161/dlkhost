@@ -15,9 +15,37 @@ use App\Events\MessagesRead;
 use App\Http\Resources\MessageResource;
 use Illuminate\Support\Str; // Добавляем импорт класса
 use Illuminate\Support\Facades\Http; // Добавляем импорт класса
+use Illuminate\Support\Facades\Cache; // Добавлено
 
 class ChatController extends Controller
 {
+    // Новый приватный метод для получения личных чатов
+    private function getPersonalChats($user)
+    {
+        $userId = $user->id;
+        switch ($user->status) {
+            case 'admin':
+            case 'coordinator':
+                return User::where('id', '<>', $userId)
+                    ->where('status', '<>', 'user')
+                    ->with(['chats' => fn($q)=> $q->where('type', 'personal')])
+                    ->get();
+            case 'support':
+                return User::where('id', '<>', $userId)
+                    ->with(['chats' => fn($q)=> $q->where('type', 'personal')])
+                    ->get();
+            case 'user':
+                $relatedDealIds = $user->deals()->pluck('deals.id');
+                return User::whereIn('status', ['support','coordinator'])
+                    ->whereHas('deals', fn($q)=> $q->whereIn('deals.id', $relatedDealIds))
+                    ->where('id', '<>', $userId)
+                    ->with(['chats' => fn($q)=> $q->where('type', 'personal')])
+                    ->get();
+            default:
+                return collect();
+        }
+    }
+
     /**
      * Отображает список чатов (личных и групповых), в которых участвует пользователь.
      */
@@ -31,39 +59,7 @@ class ChatController extends Controller
 
         // Личные чаты
         try {
-            switch ($user->status) {
-                case 'admin':
-                case 'coordinator':
-                    $personalUsers = User::where('id', '<>', $userId)
-                        ->where('status', '<>', 'user')
-                        ->with(['chats' => function($q) {
-                            $q->where('type', 'personal');
-                        }])
-                        ->get();
-                    break;
-                case 'support':
-                    $personalUsers = User::where('id', '<>', $userId)
-                        ->with(['chats' => function($q) {
-                            $q->where('type', 'personal');
-                        }])
-                        ->get();
-                    break;
-                case 'user':
-                    $relatedDealIds = $user->deals()->pluck('deals.id');
-                    $personalUsers = User::whereIn('status', ['support', 'coordinator'])
-                        ->whereHas('deals', function($q) use ($relatedDealIds) {
-                            $q->whereIn('deals.id', $relatedDealIds);
-                        })
-                        ->where('id', '<>', $userId)
-                        ->with(['chats' => function($q) {
-                            $q->where('type', 'personal');
-                        }])
-                        ->get();
-                    break;
-                default:
-                    $personalUsers = collect();
-            }
-
+            $personalUsers = $this->getPersonalChats($user);
             foreach ($personalUsers as $chatUser) {
                 $unreadCount = Message::where('sender_id', $chatUser->id)
                     ->where('receiver_id', $userId)
@@ -112,7 +108,7 @@ class ChatController extends Controller
                 // Проверка и установка аватара по умолчанию для групповых чатов
                 $avatarUrl = $chat->avatar_url;
                 if (empty($avatarUrl) || !file_exists(public_path($avatarUrl))) {
-                    $avatarUrl = 'storage/avatars/group_default.png';
+                    $avatarUrl = 'storage/avatars/group_default.svg';
                 }
 
                 $chats->push([
@@ -125,9 +121,8 @@ class ChatController extends Controller
                 ]);
             }
         } catch (\Exception $e) {
-            Log::error('Ошибка при формировании списка чатов: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
+            // Улучшенное логирование
+            Log::error('Ошибка при формировании списка чатов', ['error'=>$e->getMessage(), 'trace'=>$e->getTraceAsString()]);
             return response()->json(['error' => 'Ошибка при формировании списка чатов.'], 500);
         }
 
@@ -145,77 +140,78 @@ class ChatController extends Controller
     public function chatMessages($type, $id)
     {
         $currentUserId = Auth::id();
+        $perPage = 50;
+        $page = request()->get('page', 1);
+        $offset = ($page - 1) * $perPage;
 
         try {
             if ($type === 'personal') {
                 $recipient = User::findOrFail($id);
-
-                $messages = Message::with('sender')
-                    ->where(function ($query) use ($recipient, $currentUserId) {
-                        $query->where(function ($q) use ($recipient, $currentUserId) {
-                            $q->where('sender_id', $currentUserId)
-                              ->where('receiver_id', $recipient->id);
-                        })
-                        ->orWhere(function ($q) use ($recipient, $currentUserId) {
-                            $q->where('sender_id', $recipient->id)
-                              ->where('receiver_id', $currentUserId);
-                        })
-                        ->orWhere(function ($q) use ($recipient, $currentUserId) {
-                            // Добавляем системные уведомления для этого чата
-                            $q->where('message_type', 'notification')
-                              ->where(function ($sq) use ($recipient, $currentUserId) {
-                                  $sq->where('sender_id', $currentUserId)
-                                     ->where('receiver_id', $recipient->id)
-                                     ->orWhere(function ($sq2) use ($recipient, $currentUserId) {
-                                         $sq2->where('sender_id', $recipient->id)
-                                             ->where('receiver_id', $currentUserId);
-                                     });
-                              });
-                        });
+                $query = Message::with('sender') // eager loading для уменьшения количества запросов
+                    ->where(function ($q) use ($recipient, $currentUserId) {
+                        $q->where('sender_id', $currentUserId)
+                          ->where('receiver_id', $recipient->id);
                     })
-                    ->orderBy('created_at', 'desc')
-                    ->limit(50)
-                    ->get()
-                    ->reverse();
-
-                Message::where('sender_id', $recipient->id)
-                    ->where('receiver_id', $currentUserId)
-                    ->whereNull('read_at')
-                    ->update(['is_read' => true, 'read_at' => now()]);
+                    ->orWhere(function ($q) use ($recipient, $currentUserId) {
+                        $q->where('sender_id', $recipient->id)
+                          ->where('receiver_id', $currentUserId);
+                    })
+                    ->orWhere(function ($q) use ($recipient, $currentUserId) {
+                        // Добавляем системные уведомления для этого чата
+                        $q->where('message_type', 'notification')
+                          ->where(function ($sq) use ($recipient, $currentUserId) {
+                              $sq->where('sender_id', $currentUserId)
+                                 ->where('receiver_id', $recipient->id)
+                                 ->orWhere(function ($sq2) use ($recipient, $currentUserId) {
+                                     $sq2->where('sender_id', $recipient->id)
+                                         ->where('receiver_id', $currentUserId);
+                                 });
+                          });
+                    });
             } elseif ($type === 'group') {
                 $chat = Chat::where('type', 'group')->findOrFail($id);
                 if (!$chat->users->contains($currentUserId)) {
                     $chat->users()->attach($currentUserId);
                 }
-                $messages = $chat->messages()->with('sender')
-                    ->orderBy('created_at', 'desc')
-                    ->limit(50)
-                    ->get()
-                    ->reverse();
+                $query = Message::with('sender')->where('chat_id', $chat->id);
+            } else {
+                return response()->json(['error' => 'Неверный тип чата.'], 400);
+            }
 
+            $messages = $query->orderBy('created_at', 'desc')
+                ->skip($offset)
+                ->take($perPage)
+                ->get()
+                ->reverse();
+
+            // Обновляем статус сообщений в зависимости от типа чата
+            if ($type === 'personal') {
+                Message::where('sender_id', $recipient->id)
+                    ->where('receiver_id', $currentUserId)
+                    ->whereNull('read_at')
+                    ->update(['is_read' => true, 'read_at' => now()]);
+            } elseif ($type === 'group') {
                 Message::where('chat_id', $chat->id)
                     ->where('sender_id', '!=', $currentUserId)
                     ->whereNull('read_at')
                     ->update(['is_read' => true, 'read_at' => now()]);
-            } else {
-                return response()->json(['error' => 'Неверный тип чата.'], 400);
             }
+
+            $messages->each(function ($message) {
+                $message->sender_name = optional($message->sender)->name ?? 'Unknown';
+            });
+
+            $formattedMessages = MessageResource::collection($messages);
+            return response()->json([
+                'current_user_id' => $currentUserId,
+                'messages'        => $formattedMessages,
+            ], 200);
         } catch (\Exception $e) {
             Log::error('Ошибка при загрузке сообщений: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Ошибка загрузки сообщений.'], 500);
         }
-
-        $messages->each(function ($message) {
-            $message->sender_name = optional($message->sender)->name ?? 'Unknown';
-        });
-
-        $formattedMessages = MessageResource::collection($messages);
-        return response()->json([
-            'current_user_id' => $currentUserId,
-            'messages'        => $formattedMessages,
-        ], 200);
     }
 
     /**
@@ -372,7 +368,7 @@ class ChatController extends Controller
                 $message->sender_name = optional($message->sender)->name;
             });
         } catch (\Exception $e) {
-            Log::error('Ошибка при получении новых сообщений: ' . $e->getMessage(), [
+            Log::error('Ошибка при получении новых сообщений: ' . $е->getMessage(), [
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Ошибка получения сообщений.'], 500);
@@ -629,6 +625,10 @@ class ChatController extends Controller
         if (!$userId) {
             $userId = Auth::id();
         }
+        $cacheKey = "user_chats_{$userId}";
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
         $user = User::find($userId);
         if (!$user) {
             return collect();
@@ -688,7 +688,7 @@ class ChatController extends Controller
                 // Проверка и установка аватара по умолчанию для групповых чатов
                 $avatarUrl = $chat->avatar_url;
                 if (empty($avatarUrl) || !file_exists(public_path($avatarUrl))) {
-                    $avatarUrl = 'storage/avatars/group_default.png';
+                    $avatarUrl = 'storage/avatars/group_default.svg';
                 }
 
                 $chats->push([
@@ -711,6 +711,7 @@ class ChatController extends Controller
             return $chat['unread_count'] > 0 ? 1 : 0;
         })->sortByDesc('last_message_time')->values();
 
+        Cache::put($cacheKey, $sorted, 10);
         return $sorted;
     }
 
@@ -724,6 +725,10 @@ class ChatController extends Controller
     public function getUnreadCounts()
     {
         $userId = Auth::id();
+        $cacheKey = "chat_unread_counts_user_{$userId}";
+        if (Cache::has($cacheKey)) {
+            return response()->json(['unread_counts' => Cache::get($cacheKey)], 200);
+        }
         $unreadCounts = [];
 
         try {
@@ -776,6 +781,8 @@ class ChatController extends Controller
                     ];
                 }
             }
+
+            Cache::put($cacheKey, $unreadCounts, 5);
         } catch (\Exception $e) {
             Log::error('Ошибка при получении количества непрочитанных сообщений: ' . $e->getMessage(), [
                 'trace' => $e->getTraceAsString()
