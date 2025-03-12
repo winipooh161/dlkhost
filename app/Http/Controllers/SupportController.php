@@ -24,28 +24,47 @@ class SupportController extends Controller
         // Жестко задаем ID пользователя поддержки
         $supportUserId = 55;
         
-        // Проверяем существование пользователя поддержки
+        // Получаем пользователя поддержки
         $supportUser = User::find($supportUserId);
         
+        // Проверяем существование пользователя поддержки
         if (!$supportUser) {
-            Log::warning('Support user (ID: 55) not found');
-            return redirect()->back()->with('error', 'Служба поддержки временно недоступна');
+            Log::error('Пользователь поддержки с ID 55 не найден');
+            return view('module.support', [
+                'title_site' => $title_site,
+                'supportError' => 'Сервис поддержки временно недоступен'
+            ]);
         }
-
-        // Создаем или получаем существующий чат между текущим пользователем и поддержкой
-        $chatMessages = Message::where(function ($query) use ($user, $supportUserId) {
-            $query->where('sender_id', $user->id)
-                  ->where('receiver_id', $supportUserId)
-                  ->orWhere('sender_id', $supportUserId)
-                  ->where('receiver_id', $user->id);
-        })->exists();
-
-        return view('support', [
-            'supportChat' => true,
-            'supportUserId' => $supportUserId,
-            'title_site' => $title_site,
-            'chatExists' => $chatMessages
-        ]);
+        
+        // Подсчитываем количество непрочитанных сообщений
+        $unreadCount = Message::where('sender_id', $supportUserId)
+            ->where('receiver_id', $user->id)
+            ->where('is_read', false)
+            ->count();
+            
+        // Получаем последнее сообщение
+        $lastMessage = Message::where(function($query) use ($supportUserId, $user) {
+                $query->where('sender_id', $user->id)
+                      ->where('receiver_id', $supportUserId);
+            })
+            ->orWhere(function($query) use ($supportUserId, $user) {
+                $query->where('sender_id', $supportUserId)
+                      ->where('receiver_id', $user->id);
+            })
+            ->orderBy('created_at', 'desc')
+            ->first();
+            
+        // Подготавливаем данные для чата поддержки
+        $supportChat = [
+            'id' => $supportUserId,
+            'type' => 'personal',
+            'name' => $supportUser->name ?? 'Техническая поддержка',
+            'avatar_url' => $supportUser->avatar_url ?? 'storage/avatars/support_default.png',
+            'unread_count' => $unreadCount,
+            'last_message_time' => $lastMessage ? $lastMessage->created_at : null,
+        ];
+        
+        return view('support', compact('title_site', 'user', 'supportChat'));
     }
     
     // Другие методы поддержки (например, создание тикета) можно добавить здесь

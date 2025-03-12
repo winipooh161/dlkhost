@@ -24,55 +24,47 @@ messaging.onBackgroundMessage(function(payload) {
     const notificationTitle = payload.notification?.title || 'Новое сообщение';
     const notificationOptions = {
         body: payload.notification?.body || '',
-        icon: '/path/to/icon.png', // Замените на путь к вашей иконке
-        badge: '/path/to/badge.png', // Опционально
+        icon: '/storage/icon/notification-icon.png',
+        badge: '/storage/icon/badge-icon.png',
         tag: `chat-${payload.data?.chatId || 'general'}`,
         data: payload.data || {},
-        requireInteraction: true, // Уведомление не исчезает автоматически
-        renotify: true, // Уведомлять даже если предыдущее уведомление не закрыто
-        vibrate: [200, 100, 200] // Добавлен паттерн вибрации для мобильных устройств
+        requireInteraction: true,
+        renotify: true,
+        vibrate: [200, 100, 200]
     };
-
-    // Показываем уведомление через service worker API
-    return self.registration.showNotification(notificationTitle, notificationOptions);
+    
+    // Показываем уведомление
+    self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Обработка клика по уведомлению
+// Обработчик клика по уведомлению
 self.addEventListener('notificationclick', function(event) {
     console.log('[firebase-messaging-sw.js] Клик по уведомлению', event);
 
-    // Закрываем уведомление при клике
+    // Закрываем уведомление
     event.notification.close();
 
     // Получаем данные из уведомления
-    const payload = event.notification.data;
-    const chatId = payload?.chatId || event.notification.tag?.replace('chat-', '');
-    const chatType = payload?.chatType || 'personal';
-
-    // Формируем URL для перехода
+    const chatId = event.notification.data?.chatId;
+    const chatType = event.notification.data?.chatType;
+    
+    // Формируем URL для открытия
     let url = '/chats';
     if (chatId && chatType) {
-        url = `/chats?chatId=${chatId}&chatType=${chatType}`;
+        url += `?chatId=${chatId}&chatType=${chatType}`;
     }
-
-    // Обрабатываем клик по уведомлению
+    
+    // Открываем окно с указанным URL
     event.waitUntil(
-        clients.matchAll({type: 'window', includeUncontrolled: true}).then(windowClients => {
-            // Проверяем, есть ли уже открытые окна
-            for (let i = 0; i < windowClients.length; i++) {
-                const client = windowClients[i];
-                // Если окно уже открыто, переходим к нему и фокусируемся
-                if ('focus' in client) {
-                    client.postMessage({
-                        type: 'NOTIFICATION_CLICK',
-                        chatId: chatId,
-                        chatType: chatType
-                    });
-                    client.navigate(url);
+        clients.matchAll({type: 'window'}).then(function(clientList) {
+            // Если найдено существующее окно, фокусируем его
+            for (var i = 0; i < clientList.length; i++) {
+                var client = clientList[i];
+                if (client.url.indexOf('/chats') !== -1 && 'focus' in client) {
                     return client.focus();
                 }
             }
-            // Если нет открытых окон, открываем новое
+            // Если нет существующего окна, открываем новое
             if (clients.openWindow) {
                 return clients.openWindow(url);
             }
