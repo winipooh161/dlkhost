@@ -92,9 +92,11 @@ Route::middleware(['auth', 'status:partner'])->group(function () {
     Route::get('/estimate/copy/{id?}', [SmetsController::class, 'copyEstimate'])->name('estimate.copy');
     Route::get('/estimate/change-estimate/{id?}', [SmetsController::class, 'changeEstimate'])->name('estimate.changeEstimate');
 });
-
+Route::middleware(['auth', 'status:coordinator,admin,partner,visualizer,architect,designer'])->group(function () {
+Route::get('/deal-cardinator', [DealsController::class, 'dealCardinator'])->name('deal.cardinator');
+});
 Route::middleware(['auth', 'status:coordinator,admin,partner'])->group(function () {
-    Route::get('/deal-cardinator', [DealsController::class, 'dealCardinator'])->name('deal.cardinator');
+   
     Route::get('/deals/create', [DealsController::class, 'createDeal'])->name('deals.create');
     Route::post('/deal/store', [DealsController::class, 'storeDeal'])->name('deals.store');
     Route::put('/deal/update/{id}', [DealsController::class, 'updateDeal'])->name('deal.update');
@@ -185,3 +187,5 @@ Route::match(['GET', 'POST'], '/logout', [AuthController::class, 'logout'])->nam
 if (app()->environment('production')) {
     URL::forceScheme('https');
 }
+
+Route::get('/deal/{dealId}/feeds', [DealsController::class, 'getDealFeeds'])->name('deal.feeds');

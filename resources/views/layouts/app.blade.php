@@ -8,7 +8,7 @@
     <title>{{ $title_site ?? config('app.name', 'Laravel') }}</title>
     <link rel="stylesheet" href="{{ asset('/css/animate.css') }}">
     <link rel="stylesheet" href="{{ asset('/css/introjs.min.css') }}">
-    @vite([ 'resources/css/font.css', 'resources/css/animation.css',  'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/success.js', 'resources/js/mask.js', 'resources/js/chat.js','resources/css/style.css',  'resources/css/element.css','resources/css/mobile.css', 'resources/js/firebase-init.js', 'resources/js/notification.js', 
+    @vite([ 'resources/css/font.css', 'resources/css/animation.css',  'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/notification.js','resources/js/success.js', 'resources/js/mask.js', 'resources/js/chat.js','resources/css/style.css',  'resources/css/element.css','resources/css/mobile.css',   
 
     'resources/js/message-actions.js',
     'resources/js/emoji-picker.js',

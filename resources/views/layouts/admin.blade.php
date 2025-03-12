@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title_site }}</title>
-    @vite([ 'resources/css/style.css', 'resources/css/font.css', 'resources/css/element.css', 'resources/css/animation.css', 'resources/css/mobile.css', 'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/success.js','resources/js/bootstrap.js','resources/js/mask.js', 'resources/js/login.js', 'resources/js/chat.js', 'resources/js/firebase-init.js', 'resources/js/notification.js', 
+    @vite([ 'resources/css/style.css', 'resources/css/font.css', 'resources/css/element.css', 'resources/css/animation.css', 'resources/css/mobile.css', 'resources/js/bootstrap.js', 'resources/js/modal.js', 'resources/js/success.js','resources/js/bootstrap.js','resources/js/mask.js', 'resources/js/login.js', 'resources/js/notification.js','resources/js/chat.js',   
 
     'resources/js/message-actions.js',
     'resources/js/emoji-picker.js',

@@ -1,36 +1,10 @@
-import { initializeApp } from "firebase/app";
-import { getMessaging, onMessage } from "firebase/messaging";
-import { showBrowserNotification, showModalNotification } from './firebase-init';
 import { initializeEmojiPicker } from './emoji-picker';
 import { attachMessageActionListeners } from './message-actions';
 import { formatTime, escapeHtml, scrollToBottom, filterMessages, renderMessages } from './chat-utils';
 import { showChatNotification, checkForNewMessages } from './notification';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Проверяем и запрашиваем разрешения на уведомления, если еще не запрошены
-    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
-        const notificationBanner = document.createElement('div');
-        notificationBanner.className = 'notification-permission-banner';
-        notificationBanner.innerHTML = `
-            <div class="notification-banner-content">
-                <p>Разрешите уведомления, чтобы быть в курсе новых сообщений</p>
-                <button id="allow-notifications" class="btn btn-primary">Разрешить</button>
-                <button id="close-notification-banner" class="btn btn-secondary">Позже</button>
-            </div>
-        `;
-        document.body.appendChild(notificationBanner);
-
-        document.getElementById('allow-notifications').addEventListener('click', () => {
-            Notification.requestPermission().then(permission => {
-                console.log('Пользователь ' + (permission === 'granted' ? 'разрешил' : 'не разрешил') + ' уведомления');
-                notificationBanner.remove();
-            });
-        });
-
-        document.getElementById('close-notification-banner').addEventListener('click', () => {
-            notificationBanner.remove();
-        });
-    }
+    // Удалены проверка и запрос разрешений на уведомления Firebase
 
     const currentUserId = window.Laravel.user.id;
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
@@ -125,14 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function subscribeToChat(chatId, chatType) {
-        // Удаление Pusher и Echo
-        // if(window.Echo) {
-        //     window.Echo.private(`chat.${chatType}.${chatId}`)
-        //         .listen('MessageSent', (e) => {
-        //             renderMessages([e.message], e.message.sender_id, loadedMessageIds, csrfToken, currentChatType, currentChatId);
-        //             markMessagesAsRead(chatId, chatType);
-        //         });
-        // }
+        // Функция оставлена пустой, так как Pusher и Echo были удалены в оригинале
     }
 
     // Изменяем функцию периодической проверки новых сообщений
@@ -301,5 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             filterMessages(pinnedOnly);  // Передаем параметр pinnedOnly
         });
     }
+
+    checkForNewMessages();
 
 });

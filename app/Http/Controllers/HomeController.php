@@ -31,6 +31,14 @@ class HomeController extends Controller
             
             case 'coordinator':
                 return redirect()->route('deal.cardinator');
+                case 'architect':
+                    return redirect()->route('deal.cardinator');
+            
+                    case 'designer':
+                        return redirect()->route('deal.cardinator'); 
+                        case 'visualizer':
+                            return redirect()->route('deal.cardinator');
+                       
             
             case 'partner':
                 return redirect()->route('estimate');
@@ -44,7 +52,7 @@ class HomeController extends Controller
             default:
                 // Optionally, handle unexpected statuses
                 Auth::logout();
-                return redirect()->route('login')->withErrors(['status' => 'Invalid user status.']);
+                return redirect()->route('home')->withErrors(['status' => 'Invalid user status.']);
         }
     }
 }

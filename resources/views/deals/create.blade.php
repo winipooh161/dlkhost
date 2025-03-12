@@ -14,22 +14,12 @@
     </div>
 @endif
 
-<div class="button__points">
-    <button data-target="Заказ">Заказ</button>
-    <button data-target="Доп. информация">Доп. информация</button>
-    <button data-target="Работа над проектом">Работа над проектом</button>
-    <button data-target="Финал проекта">Финал проекта</button>
-    <button data-target="О сделке">О сделке</button>
-    <button data-target="Аватар сделки">Аватар сделки</button>
-</div>
-
 <form id="create-deal-form" action="{{ route('deals.store') }}" method="POST" enctype="multipart/form-data">
     @csrf
 
-
-    <!-- БЛОК 1: Заказ -->
+    <!-- БЛОК: Основная информация -->
     <fieldset class="module">
-        <legend>Заказ</legend>
+        <legend>Информация о сделке</legend>
         <div class="form-group-deal">
             <label for="project_number">№ проекта (пример: Проект 6303): <span class="required">*</span></label>
             <input type="text" id="project_number" name="project_number" class="form-control">
@@ -94,15 +84,49 @@
         </div>
         <div class="form-group-deal">
             <label for="client_phone">Телефон: <span class="required">*</span></label>
-            <input type="text" id="client_phone" name="client_phone" class="form-control" required>
+            <input type="text" id="client_phone" name="client_phone"  class="form-control maskphone" required>
         </div>
         <div class="form-group-deal">
             <label for="client_timezone">Город/часовой пояс:</label>
-            <select id="client_timezone" name="client_timezone" class="form-control" required>
+            <select id="client_timezone" name="client_timezone" class="form-control">
                  <option value="">-- Выберите город --</option>
             </select>
         </div>
-        
+        <div class="form-group-deal">
+            <label for="start_date">Дата начала проекта:</label>
+            <!-- Значение устанавливается автоматически, поле недоступно -->
+            <input type="date" id="start_date" name="start_date" readonly>
+        </div>
+        <div class="form-group-deal">
+            <label for="project_duration">Общий срок проекта (в днях):</label>
+            <!-- Поле редактируемое -->
+            <input type="number" id="project_duration" name="project_duration">
+        </div>
+        <div class="form-group-deal">
+            <label for="project_end_date">Дата завершения проекта:</label>
+            <!-- Вычисляемое поле, недоступное для редактирования -->
+            <input type="date" id="project_end_date" name="project_end_date" readonly>
+        </div>
+        <script>
+            document.addEventListener("DOMContentLoaded", function(){
+                // Автоматически устанавливаем сегодняшнюю дату в поле "Дата начала проекта"
+                var today = new Date().toISOString().split("T")[0];
+                document.getElementById("start_date").value = today;
+                
+                // При изменении срока проекта обновляем "Дата завершения проекта"
+                document.getElementById("project_duration").addEventListener("input", function(){
+                     var duration = parseInt(this.value, 10);
+                     if (!isNaN(duration)) {
+                         var startDate = new Date(document.getElementById("start_date").value);
+                         startDate.setDate(startDate.getDate() + duration);
+                         var endDate = startDate.toISOString().split("T")[0];
+                         document.getElementById("project_end_date").value = endDate;
+                     } else {
+                         document.getElementById("project_end_date").value = "";
+                     }
+                });
+            });
+        </script>
         <div class="form-group-deal">
             <label for="office_partner_id">Офис/Партнер:</label>
             <select id="office_partner_id" name="office_partner_id" class="form-control">
@@ -123,20 +147,6 @@
                 @foreach($coordinators as $coord)
                     <option value="{{ $coord->id }}">{{ $coord->name }}</option>
                 @endforeach
-            </select>
-        </div>
-    </fieldset>
-
-    <!-- БЛОК 2: Доп. информация -->
-    <fieldset class="module">
-        <legend>Доп. информация</legend>
-        <div class="form-group-deal">
-            <label for="priority">Приоритет: <span class="required">*</span></label>
-            <select id="priority" name="priority" class="form-control" required>
-                <option value="">-- Выберите приоритет --</option>
-                <option value="высокий">Высокий</option>
-                <option value="средний">Средний</option>
-                <option value="низкий">Низкий</option>
             </select>
         </div>
         <div class="form-group-deal">
@@ -167,142 +177,7 @@
             <label for="comment">Общий комментарий:</label>
             <textarea id="comment" name="comment" class="form-control" rows="3" maxlength="1000"></textarea>
         </div>
-        <div class="form-group-deal">
-            <label for="office_equipment">Оборудование офиса:</label>
-            <input type="checkbox" id="office_equipment" name="office_equipment" value="1">
-        </div>
-    </fieldset>
 
-    <!-- БЛОК 3: Работа над проектом -->
-    <fieldset class="module">
-        <legend>Работа над проектом</legend>
-        <div class="form-group-deal">
-            <label for="measurement_comments">Комментарии по замерам:</label>
-            <textarea id="measurement_comments" name="measurement_comments" class="form-control" rows="3" maxlength="1000"></textarea>
-        </div>
-        <div class="form-group-deal">
-            <label for="measurements_file">Замеры (файл):</label>
-            <input type="file" id="measurements_file" name="measurements_file" accept=".pdf,image/*,dwg">
-        </div>
-        <div class="form-group-deal">
-            <label for="start_date">Дата начала проекта:</label>
-            <input type="date" id="start_date" name="start_date" class="form-control">
-        </div>
-        <div class="form-group-deal">
-            <label for="project_duration">Общий срок проекта (в днях):</label>
-            <input type="text" id="project_duration" name="project_duration" class="form-control">
-        </div>
-        <div class="form-group-deal">
-            <label for="project_end_date">Дата завершения проекта:</label>
-            <input type="date" id="project_end_date" name="project_end_date" class="form-control">
-        </div>
-        <div class="form-group-deal">
-            <label for="architect_id">Архитектор:</label>
-            <select id="architect_id" name="architect_id" class="form-control">
-                <option value="">-- Не выбрано --</option>
-                @foreach($architects as $architect)
-                    <option value="{{ $architect->id }}">{{ $architect->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="form-group-deal">
-            <label for="final_floorplan">Планировка финал (PDF):</label>
-            <input type="file" id="final_floorplan" name="final_floorplan" accept="application/pdf">
-        </div>
-        <div class="form-group-deal">
-            <label for="designer_id">Дизайнер:</label>
-            <select id="designer_id" name="designer_id" class="form-control">
-                <option value="">-- Не выбрано --</option>
-                @foreach($designers as $designer)
-                    <option value="{{ $designer->id }}">{{ $designer->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="form-group-deal">
-            <label for="final_collage">Коллаж финал (PDF):</label>
-            <input type="file" id="final_collage" name="final_collage" accept="application/pdf">
-        </div>
-        <div class="form-group-deal">
-            <label for="visualizer_id">Визуализатор:</label>
-            <select id="visualizer_id" name="visualizer_id" class="form-control">
-                <option value="">-- Не выбрано --</option>
-                @foreach($visualizers as $visualizer)
-                    <option value="{{ $visualizer->id }}">{{ $visualizer->name }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="form-group-deal">
-            <label for="visualization_link">Ссылка на визуализацию:</label>
-            <input type="url" id="visualization_link" name="visualization_link" class="form-control">
-        </div>
-        <div class="form-group-deal">
-            <label for="final_project_file">Финал проекта (PDF):</label>
-            <input type="file" id="final_project_file" name="final_project_file" accept="application/pdf">
-        </div>
-    </fieldset>
-
-    <!-- БЛОК 4: Финал проекта -->
-    <fieldset class="module">
-        <legend>Финал проекта</legend>
-        <div class="form-group-deal">
-            <label for="work_act">Акт выполненных работ (PDF):</label>
-            <input type="file" id="work_act" name="work_act" accept="application/pdf">
-        </div>
-        <div class="form-group-deal">
-            <label for="client_project_rating">Оценка за проект (от клиента):</label>
-            <input type="number" id="client_project_rating" name="client_project_rating" class="form-control" min="0" max="10" step="0.5">
-        </div>
-        <div class="form-group-deal">
-            <label>Оценка архитектора:</label>
-            <input type="number" name="architect_rating_client" placeholder="Клиент" class="form-control" min="0" max="10" step="0.5">
-            <input type="number" name="architect_rating_partner" placeholder="Партнер" class="form-control" min="0" max="10" step="0.5">
-            <input type="number" name="architect_rating_coordinator" placeholder="Координатор" class="form-control" min="0" max="10" step="0.5">
-        </div>
-        <div class="form-group-deal">
-            <label>Оценка дизайнера:</label>
-            <input type="number" name="designer_rating_client" placeholder="Клиент" class="form-control" min="0" max="10" step="0.5">
-            <input type="number" name="designer_rating_partner" placeholder="Партнер" class="form-control" min="0" max="10" step="0.5">
-            <input type="number" name="designer_rating_coordinator" placeholder="Координатор" class="form-control" min="0" max="10" step="0.5">
-        </div>
-        <div class="form-group-deal">
-            <label>Оценка визуализатора:</label>
-            <input type="number" name="visualizer_rating_client" placeholder="Клиент" class="form-control" min="0" max="10" step="0.5">
-            <input type="number" name="visualizer_rating_partner" placeholder="Партнер" class="form-control" min="0" max="10" step="0.5">
-            <input type="number" name="visualizer_rating_coordinator" placeholder="Координатор" class="form-control" min="0" max="10" step="0.5">
-        </div>
-        <div class="form-group-deal">
-            <label>Оценка координатора:</label>
-            <input type="number" name="coordinator_rating_client" placeholder="Клиент" class="form-control" min="0" max="10" step="0.5">
-            <input type="number" name="coordinator_rating_partner" placeholder="Партнер" class="form-control" min="0" max="10" step="0.5">
-        </div>
-        <div class="form-group-deal">
-            <label for="chat_screenshot">Скрин чата с оценкой и актом (JPEG):</label>
-            <input type="file" id="chat_screenshot" name="chat_screenshot" accept="image/jpeg,image/jpg,image/png">
-        </div>
-        <div class="form-group-deal">
-            <label for="coordinator_comment">Комментарий координатора:</label>
-            <textarea id="coordinator_comment" name="coordinator_comment" class="form-control" rows="3" maxlength="1000"></textarea>
-        </div>
-        <div class="form-group-deal">
-            <label for="archicad_file">Исходный файл архикад (pln, dwg):</label>
-            <input type="file" id="archicad_file" name="archicad_file" accept=".pln,.dwg">
-        </div>
-    </fieldset>
-
-    <fieldset class="module">
-        <legend>О сделке</legend>
-        <div class="form-group-deal">
-            <label for="contract_number">№ договора: <span class="required">*</span></label>
-            <input type="text" id="contract_number" name="contract_number" class="form-control" required>
-        </div>
-        <div class="form-group-deal">
-            <label for="contract_attachment">Приложение (PDF или JPEG):</label>
-            <input type="file" id="contract_attachment" name="contract_attachment" accept="application/pdf,image/jpeg,image/jpg,image/png">
-        </div>
-        <div class="form-group-deal">
-            <label for="deal_note">Примечание:</label>
-            <textarea id="deal_note" name="deal_note" class="form-control" rows="3"></textarea>
-        </div>
     </fieldset>
 
     <fieldset class="module">
@@ -413,6 +288,7 @@
     
     <button type="submit" class="btn btn-primary">Создать сделку</button>
 </form>
+
 <!-- Подключение необходимых библиотек (jQuery и Select2) -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -473,136 +349,73 @@ $("input.maskproject").on("input", function() {
     }
     this.value = value;
 });
-
-// Маска для поля "№ договора"
-$("input.maskcontract").on("input", function() {
-    var value = this.value;
-    if (!value.startsWith("CN-")) {
-        value = "CN-" + value.replace(/[^0-9]/g, "");
-    } else {
-        var digits = value.substring(3).replace(/[^0-9]/g, "");
-        digits = digits.substring(0, 4);
-        value = "CN-" + digits;
+document.addEventListener("DOMContentLoaded", function () {
+    var inputs = document.querySelectorAll("input.maskphone");
+    for (var i = 0; i < inputs.length; i++) {
+        var input = inputs[i];
+        input.addEventListener("input", mask);
+        input.addEventListener("focus", mask);
+        input.addEventListener("blur", mask);
     }
-    this.value = value;
+    function mask(event) {
+        var blank = "+_ (___) ___-__-__";
+        var i = 0;
+        var val = this.value.replace(/\D/g, "").replace(/^8/, "7").replace(/^9/, "79");
+        this.value = blank.replace(/./g, function (char) {
+            if (/[_\d]/.test(char) && i < val.length) return val.charAt(i++);
+            return i >= val.length ? "" : char;
+        });
+        if (event.type == "blur") {
+            if (this.value.length == 2) this.value = "";
+        } else {
+            setCursorPosition(this, this.value.length);
+        }
+    }
+    function setCursorPosition(elem, pos) {
+        elem.focus();
+        if (elem.setSelectionRange) {
+            elem.setSelectionRange(pos, pos);
+            return;
+        }
+        if (elem.createTextRange) {
+            var range = elem.createTextRange();
+            range.collapse(true);
+            range.moveEnd("character", pos);
+            range.moveStart("character", pos);
+            range.select();
+            return;
+        }
+    }
 });
-
 // Маска для поля "Пакет": разрешаем только одну цифру
 $("#package").on("input", function() {
     var val = this.value.replace(/\D/g, "");
     if(val.length > 1) { val = val.substring(0, 1); }
     this.value = val;
 });
-
-// Прикрепляем слушатель события для поля "Общий срок проекта"
-var durationField = document.getElementById("project_duration");
-if(durationField) {
-    durationField.addEventListener("input", function() {
-        // Разрешаем только цифры
-        this.value = this.value.replace(/\D/g, "");
-        // Если значение пустое – очищаем поле даты завершения
-        if(this.value === "") {
-            document.getElementById("project_end_date").value = "";
-        } else {
-            var durationDays = parseInt(this.value);
-            var startDateField = document.getElementById("start_date");
-            if(!isNaN(durationDays) && startDateField && startDateField.value) {
-                // Создаём дату начала из значения поля (оно должно быть в формате YYYY-MM-DD)
-                var startDate = new Date(startDateField.value);
-                // Рассчитываем дату завершения: добавляем количество дней к дате начала
-                var endDate = new Date(startDate.getTime() + durationDays * 86400000);
-                // Форматируем дату в формат YYYY-MM-DD
-                var dd = endDate.getDate();
-                var mm = endDate.getMonth() + 1;
-                var yyyy = endDate.getFullYear();
-                if(dd < 10) { dd = '0' + dd; }
-                if(mm < 10) { mm = '0' + mm; }
-                document.getElementById("project_end_date").value = yyyy + '-' + mm + '-' + dd;
-            }
-        }
-    });
-}
-
-// Устанавливаем сегодняшнюю дату в поле "Дата начала проекта" и делаем его readonly,
-// чтобы пользователь не мог его изменить (значение всегда в формате YYYY-MM-DD)
-var startDateField = document.getElementById("start_date");
-if(startDateField) {
-    var today = new Date().toISOString().substr(0, 10);
-    startDateField.value = today;
-    startDateField.setAttribute("readonly", true);
-}
 </script>
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        var modules = document.querySelectorAll("fieldset.module");
-        var buttons = document.querySelectorAll(".button__points button");
+        var formChanged = false;
+        var form = document.getElementById("create-deal-form");
     
-        // Скрываем все секции и показываем первую при загрузке
-        modules.forEach(module => {
-            module.style.display = "none";
-            module.style.opacity = "0";
-            module.style.transition = "opacity 0.3s ease-in-out";
+        // Отслеживаем изменения в форме
+        form.addEventListener("input", function () {
+            formChanged = true;
         });
     
-        if (modules.length > 0) {
-            modules[0].style.display = "flex";
-            setTimeout(() => modules[0].style.opacity = "1", 10);
-        }
+        // Предупреждение при попытке закрытия вкладки или перезагрузки страницы
+        window.addEventListener("beforeunload", function (event) {
+            if (formChanged) {
+                event.preventDefault();
+                event.returnValue = "Вы уверены, что хотите покинуть страницу? Все несохраненные данные будут потеряны.";
+            }
+        });
     
-        // Функция переключения секций
-        buttons.forEach(button => {
-            button.addEventListener("click", function () {
-                var targetText = this.getAttribute("data-target").trim();
-    
-                // Убираем активный стиль со всех кнопок
-                buttons.forEach(btn => btn.classList.remove("buttonSealaActive"));
-                this.classList.add("buttonSealaActive"); // Добавляем стиль к нажатой кнопке
-    
-                // Скрываем все секции с плавным исчезновением
-                modules.forEach(module => {
-                    module.style.opacity = "0";
-                    setTimeout(() => {
-                        module.style.display = "none";
-                    }, 300); // Ждем, пока opacity дойдет до 0
-                });
-    
-                // Показываем нужную секцию с плавным появлением
-                setTimeout(() => {
-                    modules.forEach(module => {
-                        var legend = module.querySelector("legend");
-                        if (legend && legend.textContent.trim() === targetText) {
-                            module.style.display = "flex";
-                            setTimeout(() => module.style.opacity = "1", 10);
-                        }
-                    });
-                }, 300);
-            });
+        // Убираем предупреждение при отправке формы (если пользователь сохраняет данные)
+        form.addEventListener("submit", function () {
+            formChanged = false;
         });
     });
-    </script>
-    
-        <script>
-            document.addEventListener("DOMContentLoaded", function () {
-                var formChanged = false;
-                var form = document.getElementById("create-deal-form");
-            
-                // Отслеживаем изменения в форме
-                form.addEventListener("input", function () {
-                    formChanged = true;
-                });
-            
-                // Предупреждение при попытке закрытия вкладки или перезагрузки страницы
-                window.addEventListener("beforeunload", function (event) {
-                    if (formChanged) {
-                        event.preventDefault();
-                        event.returnValue = "Вы уверены, что хотите покинуть страницу? Все несохраненные данные будут потеряны.";
-                    }
-                });
-            
-                // Убираем предупреждение при отправке формы (если пользователь сохраняет данные)
-                form.addEventListener("submit", function () {
-                    formChanged = false;
-                });
-            });
-            </script>
+</script>

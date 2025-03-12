@@ -1,5 +1,7 @@
 <body>
     <!-- Передаем данные пользователя -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-messaging-compat.js"></script>
     <script>
         window.Laravel = {
             user: @json([
@@ -11,6 +13,19 @@
         window.pinImgUrl = "{{ asset('storage/icon/pin.svg') }}";
         window.unpinImgUrl = "{{ asset('storage/icon/unpin.svg') }}";
         window.deleteImgUrl = "{{ asset('storage/icon/deleteMesg.svg') }}";
+
+        // Регистрация service worker и получение токена FCM
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                .then(function(registration) {
+                    console.log('Service Worker зарегистрирован с областью:', registration.scope);
+                    return registration;
+                }).catch(function(err) {
+                    console.error('Ошибка регистрации Service Worker:', err);
+                });
+        }
+
+        // Удалена инициализация Firebase и проверка разрешений на уведомления
     </script>
 
     @if (isset($supportChat) && $supportChat)

@@ -7,7 +7,7 @@
             @include('layouts/ponel')
         </div>
         <div class="main__module">
-            @include('layouts/header')
+  
             @include('chats.index')
         </div>
     </div>

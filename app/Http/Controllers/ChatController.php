@@ -290,19 +290,7 @@ class ChatController extends Controller
                     'attachments'  => $attachmentsJson,
                 ]);
                 
-                // Отправляем уведомление через Firebase, если есть токен
-                if ($receiver->firebase_token) {
-                    $this->sendFirebaseNotification(
-                        $receiver,
-                        'Новое сообщение от ' . $sender->name,
-                        $messageContent,
-                        [
-                            'chatId' => $currentUserId,
-                            'chatType' => 'personal',
-                            'messageId' => $message->id
-                        ]
-                    );
-                }
+                // Удаление отправки уведомлений через Firebase
             } elseif ($type === 'group') {
                 $chat = Chat::where('type', 'group')->findOrFail($id);
                 if (!$chat->users->contains($currentUserId)) {
@@ -316,21 +304,7 @@ class ChatController extends Controller
                     'attachments'  => $attachmentsJson,
                 ]);
                 
-                // Отправляем уведомления всем участникам чата, кроме отправителя
-                foreach ($chat->users as $user) {
-                    if ($user->id !== $currentUserId && $user->firebase_token) {
-                        $this->sendFirebaseNotification(
-                            $user,
-                            'Новое сообщение в чате ' . $chat->name,
-                            $sender->name . ': ' . $messageContent,
-                            [
-                                'chatId' => $chat->id,
-                                'chatType' => 'group',
-                                'messageId' => $message->id
-                            ]
-                        );
-                    }
-                }
+                // Удаление отправки уведомлений через Firebase
             }
 
             DB::commit();
@@ -345,88 +319,6 @@ class ChatController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return response()->json(['error' => 'Internal Server Error'], 500);
-        }
-    }
-
-    /**
-     * Отправляет уведомление через Firebase.
-     */
-    protected function sendFirebaseNotification($user, $title, $body, $data = [])
-    {
-        if (!$user->firebase_token) {
-            Log::info('Не удалось отправить уведомление: отсутствует токен Firebase', [
-                'user_id' => $user->id,
-                'title' => $title
-            ]);
-            return;
-        }
-        
-        $serverKey = env('FIREBASE_SERVER_KEY');
-        if (!$serverKey) {
-            Log::warning('FIREBASE_SERVER_KEY не настроен');
-            return;
-        }
-        
-        try {
-            // Правильно форматируем сообщение для FCM
-            $fcmNotification = [
-                'to' => $user->firebase_token,
-                'notification' => [
-                    'title' => $title,
-                    'body' => Str::limit(strip_tags($body), 100),
-                    'sound' => 'default',
-                    'icon' => '/path/to/icon.png',
-                    'click_action' => url('/chats')
-                ],
-                'data' => $data,
-                'priority' => 'high', // Важно для доставки уведомлений
-                'android' => [
-                    'priority' => 'high',
-                    'notification' => [
-                        'click_action' => 'FLUTTER_NOTIFICATION_CLICK'
-                    ]
-                ],
-                'webpush' => [
-                    'headers' => [
-                        'Urgency' => 'high'
-                    ],
-                    'notification' => [
-                        'requireInteraction' => true
-                    ]
-                ],
-                'apns' => [
-                    'headers' => [
-                        'apns-priority' => '10'
-                    ],
-                    'payload' => [
-                        'aps' => [
-                            'sound' => 'default'
-                        ]
-                    ]
-                ]
-            ];
-            
-            Log::info('Отправка FCM уведомления:', [
-                'user_id' => $user->id,
-                'token' => substr($user->firebase_token, 0, 10) . '...'
-            ]);
-            
-            $response = Http::withHeaders([
-                'Authorization' => 'key=' . $serverKey,
-                'Content-Type' => 'application/json'
-            ])->post('https://fcm.googleapis.com/fcm/send', $fcmNotification);
-            
-            Log::info('Ответ от FCM:', ['response' => $response->body()]);
-            
-            if (!$response->successful()) {
-                Log::error('Ошибка отправки FCM уведомления:', ['response' => $response->body()]);
-            }
-            
-            return $response->json();
-        } catch (\Exception $e) {
-            Log::error('Ошибка отправки уведомления Firebase: ' . $e->getMessage(), [
-                'trace' => $e->getTraceAsString()
-            ]);
         }
     }
 
@@ -892,5 +784,21 @@ class ChatController extends Controller
         }
 
         return response()->json(['unread_counts' => $unreadCounts], 200);
+    }
+
+    /**
+     * Обновляет токен FCM для текущего пользователя.
+     */
+    public function updateToken(Request $request)
+    {
+        $request->validate([
+            'token' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        $user->fcm_token = $request->token;
+        $user->save();
+
+        return response()->json(['success' => true]);
     }
 }

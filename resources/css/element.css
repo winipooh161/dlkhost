@@ -1108,7 +1108,7 @@ button.remove-button {
 .user-list {
     width: 350px;
     padding: var(--p20);
-    max-height: 600px;
+    max-height: 100%;
 }
 .user-list__avatar img {
     width: 40px;
@@ -1117,10 +1117,10 @@ button.remove-button {
 }
 .chat-box {
     -webkit-box-flex: 1;
-        -ms-flex: 1;
-            flex: 1;
-    
+    -ms-flex: 1;
+    flex: 1;
     padding: 0px;
+    max-height: 100vh;
     position: relative;
     border-radius: var(--radius);
 }
@@ -1149,7 +1149,7 @@ button.remove-button {
     letter-spacing: 0px;
 }
 .chat-messages {
-    max-height: 400px;
+    max-height: 100vh;
     overflow-y: auto;
     margin-bottom: 10px;
     border: 1px solid #eee;
